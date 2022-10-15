@@ -4,14 +4,12 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import Dict
 
-# import random
 import numpy as np
 import copy
 
 import torch
 from torch.utils.data import DataLoader
-from tqdm import tqdm
-from tqdm import trange
+from tqdm import tqdm, trange
 
 from dataset import SeqClsDataset
 from model import SeqClassifier
@@ -41,14 +39,12 @@ def run_one_epoch(
     tqdm_loop = tqdm((dataloader), total=n_batch)
     for batch_idx, sequences in enumerate(tqdm_loop, 1):
         with torch.set_grad_enabled(mode == TRAIN):
-            if args.forward_method == "pad_pack":
-                sequences["text_idx"] = sequences["text_idx"].to(args.device)
-                sequences["intent_idx"] = sequences["intent_idx"].to(args.device)
-                texts = model(sequences)
-            else:
-                texts = model(sequences["text_idx"].to(args.device))
+            # [batch_size, seq_len]
+            sequences["text_idx"] = sequences["text_idx"].to(args.device)
+            # [batch_size, num_class]
+            texts = model(sequences)['logits']
+            # [batch_size]
             labels = sequences["intent_idx"].to(args.device)
-
             optimizer.zero_grad()
             loss = criterion(texts, labels)
 
@@ -57,8 +53,9 @@ def run_one_epoch(
                 optimizer.step()
 
             batch_loss = loss.item()
+            # [batch_size]
             # batch_correct = (torch.argmax(texts, dim=-1) == labels).float().sum().item()
-            pred = texts.max(1, keepdim=True)[1]  # get the index of the max log-probability
+            pred = texts.max(1)[1]  # get the index of the max log-probability
             batch_correct = pred.eq(labels.view_as(pred)).sum().item()
             epoch_loss += batch_loss
             epoch_correct += batch_correct
@@ -118,7 +115,6 @@ def main(args):
         datasets[TRAIN].num_classes,
         args.forward_method,
         args.model_out,
-        ruduce_seq=True,
     ).to(args.device)
 
     # TODO: init optimizer

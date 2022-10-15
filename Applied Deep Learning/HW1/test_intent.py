@@ -3,9 +3,8 @@ import pickle
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import Dict
-import random
+
 import numpy as np
-from collections import defaultdict
 import torch
 from torch.utils.data import DataLoader
 from dataset import SeqClsDataset
@@ -85,7 +84,6 @@ def main(args):
         f.write("id,intent\n")
         for ids, intents_idx in zip(prediction["id"], prediction["intent_idx"]):
             f.write("%s,%s\n" % (ids, intents_idx))
-
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()

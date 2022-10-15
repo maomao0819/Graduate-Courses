@@ -38,8 +38,8 @@ class SeqClsDataset(Dataset):
 
     def collate_fn(self, samples: List[Dict]) -> Dict:
         # TODO: implement collate_fn
-        if self.sort:
-            samples.sort(key=lambda sequence: len(sequence["text"].split()), reverse=True)
+        # if self.sort:
+        samples.sort(key=lambda sequence: len(sequence["text"].split()), reverse=True)
         batch = {key: [sample[key] for sample in samples] for key in samples[0]}
         batch["text"] = [text.split() for text in batch["text"]]
         batch["len"] = torch.tensor([min(len(text), self.max_len) for text in batch["text"]])
@@ -61,22 +61,28 @@ class SeqClsDataset(Dataset):
 
 
 class SeqTaggingClsDataset(SeqClsDataset):
-    ignore_idx = -100
-    ignore_idx = Vocab.pad_id
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.ignore_idx = -100
+
+    def get_ignore_idx(self):
+        return self.ignore_idx
+
     def collate_fn(self, samples):
         # TODO: implement collate_fn
         if self.sort:
             samples.sort(key=lambda sequence: len(sequence["tokens"].split()), reverse=True)
         batch = {key: [sample[key] for sample in samples] for key in samples[0]}
-        batch["token"] = [token.split() for token in batch["tokens"]]
-        batch["len"] = torch.tensor([min(len(token), self.max_len) for token in batch["token"]])
-        batch["token_idx"] = self.vocab.encode_batch(batch["token"], self.max_len)
-        batch["token_idx"] = torch.LongTensor(batch["token_idx"])
-        if "train" in self.mode or "eval" in self.mode or "tags" in batch.keys():
-            batch["tag_idx"] = [[self.label2idx(tag) for tag in tags] for tags in batch["tags"]]
-            batch["tag_idx"] = torch.LongTensor(utils.pad_to_len(batch['tags'], self.max_len, self.vocab.pad_id))
-        else:
-            batch["intent_idx"] = torch.zeros([[0] * self.max_len] * len(samples), dtype=torch.long)
-        return batch
+        batch["len"] = torch.tensor([min(len(token), self.max_len) for token in batch["tokens"]])
+        batch_len = torch.max(batch["len"])
+        batch["tokens_idx"] = self.vocab.encode_batch(batch["tokens"], batch_len)
+        batch["tokens_idx"] = torch.LongTensor(batch["tokens_idx"])
 
+        if "train" in self.mode or "eval" in self.mode or "tags" in batch.keys():
+            batch["tags_idx"] = [[self.label2idx(tag) for tag in tags] for tags in batch["tags"]]
+            batch["tags_idx"] = torch.LongTensor(utils.pad_to_len(batch["tags_idx"], batch_len.int(), self.ignore_idx))
+        else:
+            batch["tags_idx"] = torch.zeros([[0] * batch_len] * len(samples), dtype=torch.long)
+        batch['mask'] = batch['tokens_idx'].gt(0)
+        return batch
         raise NotImplementedError
