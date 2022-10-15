@@ -61,6 +61,7 @@ def run_one_epoch(
             # [batch_size, seq_len]
             mask = sequences['mask']
             batch_correct = 0
+            # [batch_size, seq_len]
             pred = pred * mask
             tags = tags * mask
 
@@ -170,6 +171,7 @@ def main(args):
             if trigger_times >= args.epoch_patience:
                 print("Early Stop")
                 model.load_state_dict(best_model_weight)
+                break
 
         epoch_pbar.set_description(f"Epoch [{epoch+1}/{args.num_epoch}]")
         epoch_pbar.set_postfix(
@@ -181,8 +183,6 @@ def main(args):
 
     model.load_state_dict(best_model_weight)
     save_checkpoint(args.save_ckpt_dir / "best.pt", model)
-    raise NotImplementedError
-
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()

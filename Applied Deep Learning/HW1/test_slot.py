@@ -13,26 +13,47 @@ from dataset import SeqTaggingClsDataset
 from model import SeqTagger
 from utils import Vocab
 
-def predict(model: torch.nn.Module, dataloader: DataLoader):
+
+def predict(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict):
     model.eval()
     prediction = {}
     prediction["id"] = []
-    prediction["intent_idx"] = []
+    prediction["tags_idx"] = []
     with torch.no_grad():
-        for sequences in dataloader:
+        n_batch = len(dataloader)
+        tqdm_loop = tqdm((dataloader), total=n_batch)
+        for batch_idx, sequences in enumerate(tqdm_loop, 1):
+            # [batch_size]
             prediction["id"] += sequences["id"]
-            if args.forward_method == "pad_pack":
-                sequences["text_idx"] = sequences["text_idx"].to(args.device)
-                sequences["intent_idx"] = sequences["intent_idx"].to(args.device)
-                preds = model(sequences)
-            else:
-                preds = model(sequences["text_idx"].to(args.device))
-            preds_idx = torch.argmax(preds, dim=-1)
+            # [batch_size, seq_len]
+            sequences["tokens_idx"] = sequences["tokens_idx"].to(args.device)
+            # [batch_size, num_class, seq_len]
+            preds = model(sequences)["logits"]
 
-            preds_idx = preds_idx.int().tolist()
+            # [batch_size, seq_len]
+            preds_idx = torch.argmax(preds, dim=1)
+            preds_idx = preds.max(1)[1]  # get the index of the max log-probability
 
-            prediction["intent_idx"] += [dataloader.dataset.idx2label(idx) for idx in preds_idx]
+            # [batch_size, seq_len]
+            mask = sequences["mask"]
+            # [batch_size, seq_len]
+            preds_idx = preds_idx * mask
+
+            preds_idx = np.array(preds_idx.int().tolist())
+            preds_ids = np.ndarray(preds_idx.shape, dtype="<U16")
+            for key in tag2idx:
+                value = tag2idx[key]
+                preds_ids[preds_idx == value] = key
+
+            for instance_id in range(len(preds_ids)):
+                instance_length = sequences["len"][instance_id]
+                prediction["tags_idx"] += [preds_ids[instance_id][:instance_length]]
+
+            tqdm_loop.set_description(f"Batch [{batch_idx}/{n_batch}]")
+
     return prediction
+
+
 def main(args):
     # implement main function
     np.random.seed(args.random_seed)
@@ -42,11 +63,11 @@ def main(args):
     with open(args.cache_dir / "vocab.pkl", "rb") as f:
         vocab: Vocab = pickle.load(f)
 
-    intent_idx_path = args.cache_dir / "intent2idx.json"
-    intent2idx: Dict[str, int] = json.loads(intent_idx_path.read_text())
+    intent_idx_path = args.cache_dir / "tag2idx.json"
+    tag2idx: Dict[str, int] = json.loads(intent_idx_path.read_text())
 
     data = json.loads(args.test_file.read_text())
-    dataset = SeqClsDataset(data, vocab, intent2idx, args.max_len, mode="test")
+    dataset = SeqTaggingClsDataset(data, vocab, tag2idx, args.max_len, "test", args.forward_method == "pad_pack")
     # crecate DataLoader for test dataset
     dataloader = DataLoader(
         dataset=dataset,
@@ -59,7 +80,7 @@ def main(args):
 
     embeddings = torch.load(args.cache_dir / "embeddings.pt")
 
-    model = SeqClassifier(
+    model = SeqTagger(
         embeddings,
         args.hidden_size,
         args.num_layers,
@@ -68,7 +89,6 @@ def main(args):
         dataset.num_classes,
         args.forward_method,
         args.model_out,
-        ruduce_seq=True,
     ).to(args.device)
 
     model.eval()
@@ -77,18 +97,21 @@ def main(args):
     # load weights into model
     model.load_state_dict(ckpt)
     # predict dataset
-    prediction = predict(model=model, dataloader=dataloader)
+    prediction = predict(model=model, dataloader=dataloader, tag2idx=tag2idx)
     # write prediction to file (args.pred_file)
     args.pred_file.parent.mkdir(parents=True, exist_ok=True)
     with open(args.pred_file, "w") as f:
-        f.write("id,intent\n")
-        for ids, intents_idx in zip(prediction["id"], prediction["intent_idx"]):
-            f.write("%s,%s\n" % (ids, intents_idx))
-    raise NotImplementedError
+        f.write("id,tags\n")
+        for ids, tags_idx in zip(prediction["id"], prediction["tags_idx"]):
+            tags_id_str = ""
+            for tag_idx in tags_idx:
+                tags_id_str += tag_idx + " "
+            f.write("%s,%s\n" % (ids, tags_id_str[:-1]))
 
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
+    parser.add_argument("--test_file", type=Path, help="Path to the test file.", required=True)
     parser.add_argument(
         "--data_dir",
         type=Path,
@@ -105,13 +128,13 @@ def parse_args() -> Namespace:
         "--save_ckpt_dir",
         type=Path,
         help="Directory to save the model file.",
-        default="./ckpt/intent/",
+        default="./ckpt/tag/",
     )
     parser.add_argument(
         "--load_ckpt_path",
         type=Path,
         help="Directory to load the model file.",
-        default="./ckpt/intent/best.pt",
+        default="./ckpt/tag/best.pt",
     )
     parser.add_argument("--pred_file", type=Path, default="pred.slot.csv")
 
@@ -142,9 +165,7 @@ def parse_args() -> Namespace:
     # data loader
     parser.add_argument("--batch_size", type=int, default=128)
 
-    parser.add_argument(
-        "--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cpu"
-    )
+    parser.add_argument("--device", type=torch.device, help="cpu, cuda, cuda:0, cuda:1", default="cpu")
     parser.add_argument("-seed", "--random_seed", default=888, type=int, help="the seed (default 888)")
     args = parser.parse_args()
     return args

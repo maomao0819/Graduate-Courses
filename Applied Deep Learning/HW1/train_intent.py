@@ -161,6 +161,7 @@ def main(args):
             if trigger_times >= args.epoch_patience:
                 print("Early Stop")
                 model.load_state_dict(best_model_weight)
+                break
 
         epoch_pbar.set_description(f"Epoch [{epoch+1}/{args.num_epoch}]")
         epoch_pbar.set_postfix(

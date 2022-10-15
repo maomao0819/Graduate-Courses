@@ -7,6 +7,7 @@ from typing import Dict
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 from dataset import SeqClsDataset
 from model import SeqClassifier
 from utils import Vocab
@@ -18,19 +19,22 @@ def predict(model: torch.nn.Module, dataloader: DataLoader):
     prediction["id"] = []
     prediction["intent_idx"] = []
     with torch.no_grad():
-        for sequences in dataloader:
+        n_batch = len(dataloader)
+        tqdm_loop = tqdm((dataloader), total=n_batch)
+        for batch_idx, sequences in enumerate(tqdm_loop, 1):
+            # [batch_size]
             prediction["id"] += sequences["id"]
-            if args.forward_method == "pad_pack":
-                sequences["text_idx"] = sequences["text_idx"].to(args.device)
-                sequences["intent_idx"] = sequences["intent_idx"].to(args.device)
-                preds = model(sequences)
-            else:
-                preds = model(sequences["text_idx"].to(args.device))
+            # [batch_size, seq_len]
+            sequences["text_idx"] = sequences["text_idx"].to(args.device)
+            # [batch_size, num_class]
+            preds = model(sequences)['logits']
+            # [batch_size]
             preds_idx = torch.argmax(preds, dim=-1)
 
             preds_idx = preds_idx.int().tolist()
 
             prediction["intent_idx"] += [dataloader.dataset.idx2label(idx) for idx in preds_idx]
+            tqdm_loop.set_description(f"Batch [{batch_idx}/{n_batch}]")
     return prediction
 
 
@@ -68,7 +72,6 @@ def main(args):
         dataset.num_classes,
         args.forward_method,
         args.model_out,
-        ruduce_seq=True,
     ).to(args.device)
 
     model.eval()

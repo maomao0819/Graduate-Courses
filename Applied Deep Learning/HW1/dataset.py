@@ -38,8 +38,8 @@ class SeqClsDataset(Dataset):
 
     def collate_fn(self, samples: List[Dict]) -> Dict:
         # TODO: implement collate_fn
-        # if self.sort:
-        samples.sort(key=lambda sequence: len(sequence["text"].split()), reverse=True)
+        if self.sort:
+            samples.sort(key=lambda sequence: len(sequence["text"].split()), reverse=True)
         batch = {key: [sample[key] for sample in samples] for key in samples[0]}
         batch["text"] = [text.split() for text in batch["text"]]
         batch["len"] = torch.tensor([min(len(text), self.max_len) for text in batch["text"]])
@@ -48,8 +48,8 @@ class SeqClsDataset(Dataset):
         if "train" in self.mode or "eval" in self.mode or "intent" in batch.keys():
             batch["intent_idx"] = [self.label2idx(intent) for intent in batch["intent"]]
             batch["intent_idx"] = torch.LongTensor(batch["intent_idx"])
-        else:
-            batch["intent_idx"] = torch.zeros(len(batch), dtype=torch.long)
+        # else:
+        #     batch["intent_idx"] = torch.zeros(len(batch), dtype=torch.long)
         return batch
         raise NotImplementedError
 
@@ -74,15 +74,15 @@ class SeqTaggingClsDataset(SeqClsDataset):
             samples.sort(key=lambda sequence: len(sequence["tokens"].split()), reverse=True)
         batch = {key: [sample[key] for sample in samples] for key in samples[0]}
         batch["len"] = torch.tensor([min(len(token), self.max_len) for token in batch["tokens"]])
-        batch_len = torch.max(batch["len"])
-        batch["tokens_idx"] = self.vocab.encode_batch(batch["tokens"], batch_len)
+        batch_seq_len = torch.max(batch["len"])
+        batch["tokens_idx"] = self.vocab.encode_batch(batch["tokens"], batch_seq_len)
         batch["tokens_idx"] = torch.LongTensor(batch["tokens_idx"])
 
         if "train" in self.mode or "eval" in self.mode or "tags" in batch.keys():
             batch["tags_idx"] = [[self.label2idx(tag) for tag in tags] for tags in batch["tags"]]
-            batch["tags_idx"] = torch.LongTensor(utils.pad_to_len(batch["tags_idx"], batch_len.int(), self.ignore_idx))
+            batch["tags_idx"] = torch.LongTensor(utils.pad_to_len(batch["tags_idx"], batch_seq_len.int(), self.ignore_idx))
         else:
-            batch["tags_idx"] = torch.zeros([[0] * batch_len] * len(samples), dtype=torch.long)
+            batch["tags_idx"] = torch.zeros((len(batch["tokens_idx"]), batch_seq_len), dtype=torch.long)
         batch['mask'] = batch['tokens_idx'].gt(0)
         return batch
         raise NotImplementedError
