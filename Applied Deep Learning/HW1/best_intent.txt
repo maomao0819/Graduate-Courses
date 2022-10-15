@@ -1,0 +1,9 @@
+0.92533
+python train_intent.py --device=cuda:0 --batch_size=256  --num_epoch 1000 -lr 0.0014 -wd 0.14        
+python test_intent.py --device=cuda:0 --test_file data/intent/test.json --pred_file 1149.intent.csv --load_ckpt_path ckpt/intent/valloss_0.0010/best.pt 
+0.92488 
+python train_intent.py --device=cuda:0 
+python test_intent.py --device=cuda:0 --test_file data/intent/test.json --pred_file intent.csv --load_ckpt_path ckpt/intent/best.pt
+0.92133 
+python train_intent.py --device=cuda:0 --batch_size=256  --num_epoch 1000 -lr 0.0009 -wd 0.09
+python test_intent.py --device=cuda:0 --test_file data/intent/test.json --pred_file 1040.intent.csv --load_ckpt_path ckpt/intent/valloss_0.0010/best.pt

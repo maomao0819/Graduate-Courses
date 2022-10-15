@@ -172,8 +172,14 @@ def main(args):
         )
 
     model.load_state_dict(best_model_weight)
-    save_checkpoint(args.save_ckpt_dir / "best.pt", model)
-
+    # save_checkpoint(args.save_ckpt_dir / "best.pt", model)
+    save_checkpoint(args.save_ckpt_dir / f'valloss_{best_val_loss:.4f}' / "best.pt", model)
+    saving_args = args.__dict__
+    with open(args.save_ckpt_dir / f'valloss_{best_val_loss:.4f}' / "arg.json", "w") as outfile:
+        del_keys = ['data_dir', 'cache_dir', 'save_ckpt_dir', 'load_ckpt_dir', 'device']
+        for del_key in del_keys:
+            del saving_args[del_key]
+        json.dump(saving_args, outfile, indent=2)
     # TODO: Inference on test set
 
 

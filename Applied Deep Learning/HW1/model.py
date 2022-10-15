@@ -19,7 +19,7 @@ class SeqClassifier(torch.nn.Module):
         ruduce_seq_method: str = "average",
     ) -> None:
         super(SeqClassifier, self).__init__()
-        self.embed = Embedding.from_pretrained(embeddings, freeze=False)
+        self.embed = Embedding.from_pretrained(embeddings, freeze=True)
         # TODO: model architecture
         self.ruduce_seq_method = ruduce_seq_method
         embed_dim = embeddings.size(1)

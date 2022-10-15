@@ -35,7 +35,7 @@ def predict(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict):
             preds_idx = preds.max(1)[1]  # get the index of the max log-probability
 
             # [batch_size, seq_len]
-            mask = sequences["mask"]
+            mask = sequences["mask"].to(args.device)
             # [batch_size, seq_len]
             preds_idx = preds_idx * mask
 

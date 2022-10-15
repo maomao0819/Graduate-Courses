@@ -1,0 +1,6 @@
+0.76621
+python train_intent.py --device=cuda:0 
+python test_intent.py --device=cuda:0 --test_file data/slot/test.json --pred_file intent.csv --load_ckpt_path ckpt/tag/best.pt
+0.76943
+python train_slot.py --device=cuda:0 --batch_size=256  --num_epoch 1000 -lr 0.0008 -wd 0.08
+python test_slot.py --device=cuda:0 --test_file data/slot/test.json --pred_file 1034.slot.csv --load_ckpt_path ckpt/tag/valloss_0.0005/best.pt
