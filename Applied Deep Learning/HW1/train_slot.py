@@ -126,6 +126,7 @@ def main(args):
         args.forward_method,
         args.model_out,
     ).to(args.device)
+    print(model)
 
     # init optimizer
     if args.optimizer_type == "AdamW":

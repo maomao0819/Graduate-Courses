@@ -54,6 +54,69 @@ def predict(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict):
     return prediction
 
 
+def val_performance(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict):
+    print(88)
+    from seqeval.metrics import accuracy_score
+    from seqeval.metrics import classification_report
+    from seqeval.scheme import IOB2
+
+    model.eval()
+    predictions = []
+    ground_truths = []
+    n_seq = 0
+    n_token = 0
+    epoch_seq_correct = 0
+    with torch.no_grad():
+        n_batch = len(dataloader)
+        tqdm_loop = tqdm((dataloader), total=n_batch)
+        for batch_idx, sequences in enumerate(tqdm_loop, 1):
+            if "tags" in sequences.keys():
+                # [batch_size, seq_len]
+                sequences["tokens_idx"] = sequences["tokens_idx"].to(args.device)
+                # [batch_size, num_class, seq_len]
+                preds = model(sequences)["logits"]
+                # [batch_size, seq_len]
+                tags = sequences["tags_idx"].to(args.device)
+
+                # [batch_size, seq_len]
+                preds_idx = torch.argmax(preds, dim=1)
+                preds_idx = preds.max(1)[1]  # get the index of the max log-probability
+
+                # [batch_size, seq_len]
+                mask = sequences["mask"].to(args.device)
+
+                batch_correct = 0
+                # [batch_size, seq_len]
+                preds_idx = preds_idx * mask
+                tags = tags * mask
+
+                batch_seq_correct = torch.all(torch.eq(preds_idx, tags),  dim=1).sum().item()
+                epoch_seq_correct += batch_seq_correct
+
+                preds_idx = np.array(preds_idx.int().tolist())
+                preds_ids = np.ndarray(preds_idx.shape, dtype="<U16")
+                for key in tag2idx:
+                    value = tag2idx[key]
+                    preds_ids[preds_idx == value] = key
+
+                for instance_id in range(len(preds_ids)):
+                    n_seq += 1
+                    instance_length = sequences["len"][instance_id]
+                    n_token += instance_length
+                    predictions += [preds_ids[instance_id][:instance_length].tolist()]
+                    ground_truths += [sequences["tags"][instance_id]]
+                tqdm_loop.set_description(f"Batch [{batch_idx}/{n_batch}]")
+            else:
+                return
+
+        print(f"accuracy score: {int(accuracy_score(ground_truths, predictions) * n_token)} / {n_token} = {accuracy_score(ground_truths, predictions)}")
+        print(accuracy_score(ground_truths, predictions))
+        print(f"joint accuracy : {epoch_seq_correct} / {n_seq} = {epoch_seq_correct / n_seq}")
+        print("classification report: ")
+        print(classification_report(ground_truths, predictions, scheme=IOB2, mode="strict"))
+        accuracy_score
+
+
 def main(args):
     # implement main function
     np.random.seed(args.random_seed)
@@ -67,7 +130,7 @@ def main(args):
     tag2idx: Dict[str, int] = json.loads(intent_idx_path.read_text())
 
     data = json.loads(args.test_file.read_text())
-    dataset = SeqTaggingClsDataset(data, vocab, tag2idx, args.max_len, "test", args.forward_method == "pad_pack")
+    dataset = SeqTaggingClsDataset(data, vocab, tag2idx, args.max_len, args.mode, args.forward_method == "pad_pack")
     # crecate DataLoader for test dataset
     dataloader = DataLoader(
         dataset=dataset,
@@ -96,17 +159,20 @@ def main(args):
     ckpt = torch.load(args.load_ckpt_path)
     # load weights into model
     model.load_state_dict(ckpt)
-    # predict dataset
-    prediction = predict(model=model, dataloader=dataloader, tag2idx=tag2idx)
-    # write prediction to file (args.pred_file)
-    args.pred_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.pred_file, "w") as f:
-        f.write("id,tags\n")
-        for ids, tags_idx in zip(prediction["id"], prediction["tags_idx"]):
-            tags_id_str = ""
-            for tag_idx in tags_idx:
-                tags_id_str += tag_idx + " "
-            f.write("%s,%s\n" % (ids, tags_id_str[:-1]))
+    if args.mode == "eval":
+        val_performance(model=model, dataloader=dataloader, tag2idx=tag2idx)
+    else:
+        # predict dataset
+        prediction = predict(model=model, dataloader=dataloader, tag2idx=tag2idx)
+        # write prediction to file (args.pred_file)
+        args.pred_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(args.pred_file, "w") as f:
+            f.write("id,tags\n")
+            for ids, tags_idx in zip(prediction["id"], prediction["tags_idx"]):
+                tags_id_str = ""
+                for tag_idx in tags_idx:
+                    tags_id_str += tag_idx + " "
+                f.write("%s,%s\n" % (ids, tags_id_str[:-1]))
 
 
 def parse_args() -> Namespace:
@@ -137,6 +203,7 @@ def parse_args() -> Namespace:
         default="./ckpt/tag/best.pt",
     )
     parser.add_argument("--pred_file", type=Path, default="pred.slot.csv")
+    parser.add_argument("--mode", type=str, default="test", choices=["test", "eval"])
 
     # data
     parser.add_argument("--max_len", type=int, default=128)
