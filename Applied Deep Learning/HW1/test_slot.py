@@ -14,7 +14,7 @@ from model import SeqTagger
 from utils import Vocab
 
 
-def predict(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict):
+def predict(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict, device:torch.device):
     model.eval()
     prediction = {}
     prediction["id"] = []
@@ -26,7 +26,7 @@ def predict(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict):
             # [batch_size]
             prediction["id"] += sequences["id"]
             # [batch_size, seq_len]
-            sequences["tokens_idx"] = sequences["tokens_idx"].to(args.device)
+            sequences["tokens_idx"] = sequences["tokens_idx"].to(device)
             # [batch_size, num_class, seq_len]
             preds = model(sequences)["logits"]
 
@@ -35,7 +35,7 @@ def predict(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict):
             preds_idx = preds.max(1)[1]  # get the index of the max log-probability
 
             # [batch_size, seq_len]
-            mask = sequences["mask"].to(args.device)
+            mask = sequences["mask"].to(device)
             # [batch_size, seq_len]
             preds_idx = preds_idx * mask
 
@@ -54,8 +54,7 @@ def predict(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict):
     return prediction
 
 
-def val_performance(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict):
-    print(88)
+def val_performance(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dict, device:torch.device):
     from seqeval.metrics import accuracy_score
     from seqeval.metrics import classification_report
     from seqeval.scheme import IOB2
@@ -72,25 +71,25 @@ def val_performance(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dic
         for batch_idx, sequences in enumerate(tqdm_loop, 1):
             if "tags" in sequences.keys():
                 # [batch_size, seq_len]
-                sequences["tokens_idx"] = sequences["tokens_idx"].to(args.device)
+                sequences["tokens_idx"] = sequences["tokens_idx"].to(device)
                 # [batch_size, num_class, seq_len]
                 preds = model(sequences)["logits"]
                 # [batch_size, seq_len]
-                tags = sequences["tags_idx"].to(args.device)
+                tags = sequences["tags_idx"].to(device)
 
                 # [batch_size, seq_len]
                 preds_idx = torch.argmax(preds, dim=1)
                 preds_idx = preds.max(1)[1]  # get the index of the max log-probability
 
                 # [batch_size, seq_len]
-                mask = sequences["mask"].to(args.device)
+                mask = sequences["mask"].to(device)
 
                 batch_correct = 0
                 # [batch_size, seq_len]
                 preds_idx = preds_idx * mask
                 tags = tags * mask
 
-                batch_seq_correct = torch.all(torch.eq(preds_idx, tags),  dim=1).sum().item()
+                batch_seq_correct = torch.all(torch.eq(preds_idx, tags), dim=1).sum().item()
                 epoch_seq_correct += batch_seq_correct
 
                 preds_idx = np.array(preds_idx.int().tolist())
@@ -109,7 +108,9 @@ def val_performance(model: torch.nn.Module, dataloader: DataLoader, tag2idx: Dic
             else:
                 return
 
-        print(f"accuracy score: {int(accuracy_score(ground_truths, predictions) * n_token)} / {n_token} = {accuracy_score(ground_truths, predictions)}")
+        print(
+            f"accuracy score: {int(accuracy_score(ground_truths, predictions) * n_token)} / {n_token} = {accuracy_score(ground_truths, predictions)}"
+        )
         print(accuracy_score(ground_truths, predictions))
         print(f"joint accuracy : {epoch_seq_correct} / {n_seq} = {epoch_seq_correct / n_seq}")
         print("classification report: ")
@@ -160,10 +161,10 @@ def main(args):
     # load weights into model
     model.load_state_dict(ckpt)
     if args.mode == "eval":
-        val_performance(model=model, dataloader=dataloader, tag2idx=tag2idx)
+        val_performance(model=model, dataloader=dataloader, tag2idx=tag2idx, device=args.device)
     else:
         # predict dataset
-        prediction = predict(model=model, dataloader=dataloader, tag2idx=tag2idx)
+        prediction = predict(model=model, dataloader=dataloader, tag2idx=tag2idx, device=args.device)
         # write prediction to file (args.pred_file)
         args.pred_file.parent.mkdir(parents=True, exist_ok=True)
         with open(args.pred_file, "w") as f:

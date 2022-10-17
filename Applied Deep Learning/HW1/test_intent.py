@@ -13,7 +13,7 @@ from model import SeqClassifier
 from utils import Vocab
 
 
-def predict(model: torch.nn.Module, dataloader: DataLoader):
+def predict(model: torch.nn.Module, dataloader: DataLoader, device:torch.device):
     model.eval()
     prediction = {}
     prediction["id"] = []
@@ -37,6 +37,28 @@ def predict(model: torch.nn.Module, dataloader: DataLoader):
             tqdm_loop.set_description(f"Batch [{batch_idx}/{n_batch}]")
     return prediction
 
+def val_performance(model: torch.nn.Module, dataloader: DataLoader, device:torch.device):
+    model.eval()
+    epoch_correct = 0
+    n_batch = len(dataloader)
+    tqdm_loop = tqdm((dataloader), total=n_batch)
+    for batch_idx, sequences in enumerate(tqdm_loop, 1):
+        with torch.no_grad():
+            # [batch_size, seq_len]
+            sequences["text_idx"] = sequences["text_idx"].to(device)
+            # [batch_size, num_class]
+            texts = model(sequences)['logits']
+            # [batch_size]
+            labels = sequences["intent_idx"].to(device)
+
+            # [batch_size]
+            # batch_correct = (torch.argmax(texts, dim=-1) == labels).float().sum().item()
+            pred = texts.max(1)[1]  # get the index of the max log-probability
+            batch_correct = pred.eq(labels.view_as(pred)).sum().item()
+            epoch_correct += batch_correct
+            tqdm_loop.set_description(f"Batch [{batch_idx}/{n_batch}]")
+
+    print(epoch_correct / len(dataloader.dataset))
 
 def main(args):
     np.random.seed(args.random_seed)
@@ -79,14 +101,17 @@ def main(args):
     ckpt = torch.load(args.load_ckpt_path)
     # load weights into model
     model.load_state_dict(ckpt)
-    # TODO: predict dataset
-    prediction = predict(model=model, dataloader=dataloader)
-    # TODO: write prediction to file (args.pred_file)
-    args.pred_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(args.pred_file, "w") as f:
-        f.write("id,intent\n")
-        for ids, intents_idx in zip(prediction["id"], prediction["intent_idx"]):
-            f.write("%s,%s\n" % (ids, intents_idx))
+    if args.mode == "eval":
+        val_performance(model=model, dataloader=dataloader, device=args.device)
+    else:
+        # TODO: predict dataset
+        prediction = predict(model=model, dataloader=dataloader, device=args.device)
+        # TODO: write prediction to file (args.pred_file)
+        args.pred_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(args.pred_file, "w") as f:
+            f.write("id,intent\n")
+            for ids, intents_idx in zip(prediction["id"], prediction["intent_idx"]):
+                f.write("%s,%s\n" % (ids, intents_idx))
 
 def parse_args() -> Namespace:
     parser = ArgumentParser()
@@ -110,6 +135,7 @@ def parse_args() -> Namespace:
         default="./ckpt/intent/best.pt",
     )
     parser.add_argument("--pred_file", type=Path, default="pred.intent.csv")
+    parser.add_argument("--mode", type=str, default="test", choices=["test", "eval"])
 
     # data
     parser.add_argument("--max_len", type=int, default=128)
