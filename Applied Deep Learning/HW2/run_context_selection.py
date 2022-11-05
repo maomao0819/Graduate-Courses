@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional, Union
 import json
+from tqdm import tqdm
 
 import datasets
 import numpy as np
@@ -525,7 +526,8 @@ def main():
         preds = np.argmax(results.predictions, axis=1)
         # output_json = {'data': []}
         examples = []
-        for idx, pred in enumerate(tqdm(preds)):
+        data_pbar = tqdm((preds), total=len(preds))
+        for idx, pred in enumerate(data_pbar):
             example = {
                 'id': test_dataset['id'][idx],
                 question_name: test_dataset[question_name][idx],
@@ -536,6 +538,7 @@ def main():
             #     ex['answers'] = test_dataset['answers'][idx]
             # output_json['data'].append(ex)
             examples.append(example)
+            data_pbar.set_description(f"Data [{idx}/{len(preds)}]")
         os.makedirs(os.path.dirname(data_args.predict_file), exist_ok=True)
         json.dump(examples, open(data_args.predict_file, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
  

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-python run_swag.py \
+python run_context_selection.py \
   --do_train \
   --do_eval \
   --do_predict \
@@ -32,4 +32,4 @@ python run_swag.py \
   --data_seed 888 \
   --auto_find_batch_size True \
   --warmup_ratio 0.1 \
-  --num_train_epochs 2.0
+  --num_train_epochs 1.0
