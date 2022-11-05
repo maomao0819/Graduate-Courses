@@ -110,6 +110,10 @@ class DataTrainingArguments:
         default=None,
         metadata={"help": "The input context data file (a text file)."},
     )
+    predict_file: Optional[str] = field(
+        default=None,
+        metadata={"help": "The output prediction file (a text file)."},
+    )
     overwrite_cache: bool = field(
         default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
     )
@@ -306,7 +310,6 @@ def main():
             use_auth_token=True if model_args.use_auth_token else None,
         )
     else:
-        print(aa)
         # Downloading and loading the swag dataset from the hub.
         raw_datasets = load_dataset(
             "swag",
@@ -314,6 +317,18 @@ def main():
             cache_dir=model_args.cache_dir,
             use_auth_token=True if model_args.use_auth_token else None,
         )
+
+    if data_args.test_file is not None:
+        data_files = {}
+        data_files["test"] = data_args.test_file
+        extension = data_args.test_file.split(".")[-1]
+        test_datasets = load_dataset(
+            extension,
+            data_files=data_files,
+            cache_dir=model_args.cache_dir,
+            use_auth_token=True if model_args.use_auth_token else None,
+        )
+
     if data_args.context_file is not None:
         with open(data_args.context_file, 'r') as f:
             context_json = json.load(f)
@@ -348,9 +363,9 @@ def main():
     )
 
     # When using your own dataset or a different dataset from swag, you will probably need to change this.
-    ending_names = [f"ending{i}" for i in range(4)]
-    context_name = "sent1"
-    question_header_name = "sent2"
+    # ending_names = [f"ending{i}" for i in range(4)]
+    # context_name = "sent1"
+    # question_header_name = "sent2"
     question_name = "question"
     paragraphs_idx_name = "paragraphs"
     relevant_name = "relevant"
@@ -373,53 +388,29 @@ def main():
 
     # Preprocessing the datasets.
     def preprocess_function(examples):
-        # first_sentences = [[context] * 4 for context in examples[context_name]]
-        # question_headers = examples[question_header_name]
-        # second_sentences = [
-        #     [f"{header} {examples[end][i]}" for end in ending_names] for i, header in enumerate(question_headers)
-        # ]
-
-        # # Flatten out
-        # first_sentences = list(chain(*first_sentences))
-        # second_sentences = list(chain(*second_sentences))
-        # # Tokenize
-        # tokenized_examples = tokenizer(
-        #     first_sentences,
-        #     second_sentences,
-        #     truncation=True,
-        #     max_length=max_seq_length,
-        #     padding="max_length" if data_args.pad_to_max_length else False,
-        # )
-        # # Un-flatten
-        # return {k: [v[i : i + 4] for i in range(0, len(v), 4)] for k, v in tokenized_examples.items()}
-
-        first_sentences = [[question] * 4 for question in examples[question_name]]
-        for idx in examples[paragraphs_idx_name]:
-            print(len(idx))
-            print(set(range(len(context_json))) - set(idx))
-        print(aaa)
-        paragraphs_idx = [idx + random.sample(set(range(len(context_json))) - set(idx), 7 - len(idx)) for idx in examples[paragraphs_idx_name]]
-        second_sentences = [[context_json[i] for i in idx] for idx in paragraphs_idx]
-
-
-        first_sentences = list(chain(*first_sentences))
-        second_sentences = list(chain(*second_sentences))
+        # n * 4
+        question_sentences = [[question] * 4 for question in examples[question_name]]
+        # paragraphs_idx = [idx + random.sample(set(range(len(context_json))) - set(idx), 4 - len(idx)) for idx in examples[paragraphs_idx_name]]
+        paragraphs_idx = examples[paragraphs_idx_name]
+        answer_sentences = [[context_json[i] for i in idx] for idx in paragraphs_idx]
 
         # Flatten out
-        first_sentences = sum(first_sentences, [])
-        print(first_sentences)
-        second_sentences = sum(second_sentences, [])
+        # question_sentences = sum(question_sentences, [])
+        # answer_sentences = sum(answer_sentences, [])
+        question_sentences = list(chain(*question_sentences))
+        answer_sentences = list(chain(*answer_sentences))
 
         # Tokenize
         tokenized_examples = tokenizer(
-            first_sentences,
-            second_sentences,
+            question_sentences,
+            answer_sentences,
             truncation=True,
             max_length=max_seq_length,
             padding="max_length" if data_args.pad_to_max_length else False,
         )
+
         # Un-flatten
-        tokenized_inputs = {k: [v[i : i + 7] for i in range(0, len(v), 7)] for k, v in tokenized_examples.items()}
+        tokenized_inputs = {key: [value[i : i + 4] for i in range(0, len(value), 4)] for key, value in tokenized_examples.items()}
         if relevant_name in examples.keys():
             relevant = examples[relevant_name]
             tokenized_inputs['label'] = [paragraphs.index(rel) for rel, paragraphs in zip(relevant, paragraphs_idx)]
@@ -451,6 +442,21 @@ def main():
             eval_dataset = eval_dataset.select(range(max_eval_samples))
         with training_args.main_process_first(desc="validation dataset map pre-processing"):
             eval_dataset = eval_dataset.map(
+                preprocess_function,
+                batched=True,
+                num_proc=data_args.preprocessing_num_workers,
+                load_from_cache_file=not data_args.overwrite_cache,
+            )
+
+    if training_args.do_predict:
+        if "test" not in test_datasets:
+            raise ValueError("--do_predict requires a test dataset")
+        test_dataset = test_datasets["test"]
+        if data_args.max_test_samples is not None:
+            max_test_samples = min(len(test_dataset), data_args.max_test_samples)
+            test_dataset = test_dataset.select(range(max_test_samples))
+        with training_args.main_process_first(desc="test dataset map pre-processing"):
+            test_dataset = test_dataset.map(
                 preprocess_function,
                 batched=True,
                 num_proc=data_args.preprocessing_num_workers,
@@ -512,6 +518,27 @@ def main():
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
 
+    if training_args.do_predict:
+        logger.info("*** Predict ***")
+
+        results = trainer.predict(test_dataset)
+        preds = np.argmax(results.predictions, axis=1)
+        # output_json = {'data': []}
+        examples = []
+        for idx, pred in enumerate(tqdm(preds)):
+            example = {
+                'id': test_dataset['id'][idx],
+                question_name: test_dataset[question_name][idx],
+                paragraphs_idx_name: test_dataset[paragraphs_idx_name][idx],
+                relevant_name: test_dataset[paragraphs_idx_name][idx][pred] if pred < len(test_dataset[paragraphs_idx_name][idx]) else test_dataset[paragraphs_idx_name][0]
+            }
+            # if 'answers' in test_dataset.features:
+            #     ex['answers'] = test_dataset['answers'][idx]
+            # output_json['data'].append(ex)
+            examples.append(example)
+        os.makedirs(os.path.dirname(data_args.predict_file), exist_ok=True)
+        json.dump(examples, open(data_args.predict_file, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+ 
     kwargs = dict(
         finetuned_from=model_args.model_name_or_path,
         tasks="multiple-choice",

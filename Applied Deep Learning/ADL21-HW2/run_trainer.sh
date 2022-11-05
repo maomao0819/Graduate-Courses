@@ -15,17 +15,21 @@
 python run_swag.py \
   --do_train \
   --do_eval \
+  --do_predict \
   --model_name_or_path bert-base-chinese \
-  --output_dir /tmp/test-swag-trainer \
+  --output_dir tmp/test-swag-trainer \
   --pad_to_max_length \
-  --train_file train.json \
-  --validation_file valid.json \
-  --context_file context.json \
+  --train_file data/train.json \
+  --validation_file data/valid.json \
+  --test_file data/test.json \
+  --context_file data/context.json \
+  --predict_file predict.json \
   --preprocessing_num_workers 8 \
-  --cache_dir ./cache/ \
-  --context_file context.json \
+  --cache_dir cache/ \
   --max_seq_length 512 \
   --gradient_accumulation_steps 2 \
+  --seed 888 \
   --data_seed 888 \
   --auto_find_batch_size True \
-  --warmup_ratio 0.1
+  --warmup_ratio 0.1 \
+  --num_train_epochs 2.0
