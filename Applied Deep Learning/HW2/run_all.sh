@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Copyright 2020 The HuggingFace Team. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+model_name='bert-base-chinese'
+# hfl/chinese-roberta-wwm-ext
+echo $model_name
+
 python context_selection/run_cs.py \
   --do_train \
   --do_eval \
   --do_predict \
-  --model_name_or_path bert-base-chinese \
-  --output_dir model/bert-base-chinese/context-selection \
+  --model_name_or_path $model_name \
+  --output_dir model/$model_name/context-selection \
   --cache_dir cache/context-selection \
   --seed 888 \
   --data_seed 888 \
@@ -25,7 +31,7 @@ python context_selection/run_cs.py \
   --validation_file data/valid.json \
   --test_file data/test.json \
   --context_file data/context.json \
-  --predict_file predict.json \
+  --predict_file predict-$model_name.json \
   --max_seq_length 512 \
   --pad_to_max_length \
   --preprocessing_num_workers 8 \
@@ -34,3 +40,25 @@ python context_selection/run_cs.py \
   --num_train_epochs 3.0 \
   --gradient_accumulation_steps 2 \
   --warmup_ratio 0.1 
+
+python question_answering/run_qa.py \
+  --do_predict \
+  --model_name_or_path $model_name \
+  --output_dir model/$model_name/question-answering \
+  --cache_dir cache/question-answering \
+  --seed 888 \
+  --data_seed 888 \
+  --train_file data/train.json \
+  --validation_file data/valid.json \
+  --test_file predict-$model_name.json \
+  --context_file data/context.json \
+  --predict_file predict-$model_name.csv \
+  --max_seq_length 512 \
+  --pad_to_max_length \
+  --preprocessing_num_workers 8 \
+  --learning_rate 3e-5 \
+  --auto_find_batch_size True \
+  --num_train_epochs 3.0 \
+  --gradient_accumulation_steps 2 \
+  --warmup_ratio 0.1 
+  

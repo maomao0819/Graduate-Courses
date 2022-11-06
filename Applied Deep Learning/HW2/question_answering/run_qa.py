@@ -23,6 +23,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 from typing import Optional
+import compute_score
 
 import datasets
 from datasets import load_dataset
@@ -30,6 +31,7 @@ from datasets import load_dataset
 import evaluate
 import transformers
 from trainer_qa import QuestionAnsweringTrainer
+import utils_qa
 from transformers import (
     AutoConfig,
     AutoModelForQuestionAnswering,
@@ -45,7 +47,6 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, send_example_telemetry
 from transformers.utils.versions import require_version
-from utils_qa import postprocess_qa_predictions
 
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -114,6 +115,10 @@ class DataTrainingArguments:
     context_file: Optional[str] = field(
         default=None,
         metadata={"help": "The input context data file (a text file)."},
+    )
+    predict_file: Optional[str] = field(
+        default=None,
+        metadata={"help": "The output prediction file (a text file)."},
     )
     overwrite_cache: bool = field(
         default=False, metadata={"help": "Overwrite the cached training and evaluation sets"}
@@ -293,23 +298,30 @@ def main():
         )
     else:
         data_files = {}
-        if data_args.train_file is not None:
-            data_files["train"] = data_args.train_file
-            extension = data_args.train_file.split(".")[-1]
+        if data_args.test_file is not None:
+            data_files["test"] = data_args.test_file
+            extension = data_args.test_file.split(".")[-1]
 
         if data_args.validation_file is not None:
             data_files["validation"] = data_args.validation_file
             extension = data_args.validation_file.split(".")[-1]
-        if data_args.test_file is not None:
-            data_files["test"] = data_args.test_file
-            extension = data_args.test_file.split(".")[-1]
+
+        if data_args.train_file is not None:
+            data_files["train"] = data_args.train_file
+            extension = data_args.train_file.split(".")[-1]
+
         raw_datasets = load_dataset(
             extension,
             data_files=data_files,
-            field="data",
+            # field="data",
             cache_dir=model_args.cache_dir,
             use_auth_token=True if model_args.use_auth_token else None,
         )
+    # if data_args.context_file is not None:
+    #     with open(data_args.context_file, 'r') as f:
+    #         context_json = json.load(f)
+    context_json = utils_qa.load_json(data_args.context_file)
+
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
@@ -356,9 +368,9 @@ def main():
         column_names = raw_datasets["validation"].column_names
     else:
         column_names = raw_datasets["test"].column_names
-    question_column_name = "question" if "question" in column_names else column_names[0]
-    context_column_name = "context" if "context" in column_names else column_names[1]
-    answer_column_name = "answers" if "answers" in column_names else column_names[2]
+    question_column_name = "question" if "question" in column_names else column_names[1]
+    relevant_column_name = "relevant" if "relevant" in column_names else column_names[3]
+    answer_column_name = "answer" if "answer" in column_names else column_names[4]
 
     # Padding side determines if we do (question|context) or (context|question).
     pad_on_right = tokenizer.padding_side == "right"
@@ -381,8 +393,8 @@ def main():
         # in one example possible giving several features when a context is long, each of those features having a
         # context that overlaps a bit the context of the previous feature.
         tokenized_examples = tokenizer(
-            examples[question_column_name if pad_on_right else context_column_name],
-            examples[context_column_name if pad_on_right else question_column_name],
+            examples[question_column_name] if pad_on_right else [context_json[idx] for idx in examples[relevant_column_name]],
+            [context_json[idx] for idx in examples[relevant_column_name]] if pad_on_right else examples[question_column_name],
             truncation="only_second" if pad_on_right else "only_first",
             max_length=max_seq_length,
             stride=data_args.doc_stride,
@@ -414,13 +426,13 @@ def main():
             sample_index = sample_mapping[i]
             answers = examples[answer_column_name][sample_index]
             # If no answers are given, set the cls_index as answer.
-            if len(answers["answer_start"]) == 0:
+            if answers["start"]:
                 tokenized_examples["start_positions"].append(cls_index)
                 tokenized_examples["end_positions"].append(cls_index)
             else:
                 # Start/end character index of the answer in the text.
-                start_char = answers["answer_start"][0]
-                end_char = start_char + len(answers["text"][0])
+                start_char = answers["start"]
+                end_char = start_char + len(answers["text"])
 
                 # Start token index of the current span in the text.
                 token_start_index = 0
@@ -477,13 +489,13 @@ def main():
         # truncation of the context fail (the tokenized question will take a lots of space). So we remove that
         # left whitespace
         examples[question_column_name] = [q.lstrip() for q in examples[question_column_name]]
-
+        
         # Tokenize our examples with truncation and maybe padding, but keep the overflows using a stride. This results
         # in one example possible giving several features when a context is long, each of those features having a
         # context that overlaps a bit the context of the previous feature.
         tokenized_examples = tokenizer(
-            examples[question_column_name if pad_on_right else context_column_name],
-            examples[context_column_name if pad_on_right else question_column_name],
+            examples[question_column_name] if pad_on_right else [context_json[idx] for idx in examples[relevant_column_name]],
+            [context_json[idx] for idx in examples[relevant_column_name]] if pad_on_right else examples[question_column_name],
             truncation="only_second" if pad_on_right else "only_first",
             max_length=max_seq_length,
             stride=data_args.doc_stride,
@@ -575,9 +587,10 @@ def main():
     # Post-processing:
     def post_processing_function(examples, features, predictions, stage="eval"):
         # Post-processing: we match the start logits and end logits to answers in the original context.
-        predictions = postprocess_qa_predictions(
+        predictions = utils_qa.postprocess_qa_predictions(
             examples=examples,
             features=features,
+            contexts=context_json,
             predictions=predictions,
             version_2_with_negative=data_args.version_2_with_negative,
             n_best_size=data_args.n_best_size,
@@ -595,13 +608,13 @@ def main():
         else:
             formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
 
-        references = [{"id": ex["id"], "answers": ex[answer_column_name]} for ex in examples]
+        references = [{"id": ex["id"], "answer": ex[answer_column_name]} for ex in examples]
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
 
     metric = evaluate.load("squad_v2" if data_args.version_2_with_negative else "squad")
 
     def compute_metrics(p: EvalPrediction):
-        return metric.compute(predictions=p.predictions, references=p.label_ids)
+        return compute_score.compute(predictions=p.predictions, references=p.label_ids)
 
     # Initialize our Trainer
     trainer = QuestionAnsweringTrainer(
@@ -653,13 +666,19 @@ def main():
         results = trainer.predict(predict_dataset, predict_examples)
         metrics = results.metrics
 
-        max_predict_samples = (
-            data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
-        )
-        metrics["predict_samples"] = min(max_predict_samples, len(predict_dataset))
+        if metrics != None:
+            max_predict_samples = (
+                data_args.max_predict_samples if data_args.max_predict_samples is not None else len(predict_dataset)
+            )
+            metrics["predict_samples"] = min(max_predict_samples, len(predict_dataset))
 
-        trainer.log_metrics("predict", metrics)
-        trainer.save_metrics("predict", metrics)
+            trainer.log_metrics("predict", metrics)
+            trainer.save_metrics("predict", metrics)
+
+        utils_qa.predict_to_csv(results.predictions, data_args.predict_file)
+        
+
+
 
     kwargs = {"finetuned_from": model_args.model_name_or_path, "tasks": "question-answering"}
     if data_args.dataset_name is not None:

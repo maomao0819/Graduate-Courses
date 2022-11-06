@@ -24,8 +24,8 @@ import sys
 from dataclasses import dataclass, field
 from itertools import chain
 from typing import Optional, Union
-import json
 from tqdm import tqdm
+import utils_cs
 
 import datasets
 import numpy as np
@@ -330,9 +330,11 @@ def main():
             use_auth_token=True if model_args.use_auth_token else None,
         )
 
-    if data_args.context_file is not None:
-        with open(data_args.context_file, 'r') as f:
-            context_json = json.load(f)
+    # if data_args.context_file is not None:
+    #     with open(data_args.context_file, 'r') as f:
+    #         context_json = json.load(f)
+    context_json = utils_cs.load_json(data_args.context_file)
+    
     # See more about loading any type of standard or custom dataset (from files, python dict, pandas DataFrame, etc) at
     # https://huggingface.co/docs/datasets/loading_datasets.html.
 
@@ -524,9 +526,12 @@ def main():
 
         results = trainer.predict(test_dataset)
         preds = np.argmax(results.predictions, axis=1)
-        # output_json = {'data': []}
         examples = []
         data_pbar = tqdm((preds), total=len(preds))
+        default_ans =  {
+            "text": "",
+            "start": 0
+        }
         for idx, pred in enumerate(data_pbar):
             example = {
                 'id': test_dataset['id'][idx],
@@ -534,13 +539,17 @@ def main():
                 paragraphs_idx_name: test_dataset[paragraphs_idx_name][idx],
                 relevant_name: test_dataset[paragraphs_idx_name][idx][pred] if pred < len(test_dataset[paragraphs_idx_name][idx]) else test_dataset[paragraphs_idx_name][0]
             }
-            # if 'answers' in test_dataset.features:
-            #     ex['answers'] = test_dataset['answers'][idx]
-            # output_json['data'].append(ex)
+            if 'answer' in test_dataset.features:
+                example['answer'] = test_dataset['answer'][idx]
+            else:
+                example['answer'] = default_ans
+            
             examples.append(example)
             data_pbar.set_description(f"Data [{idx}/{len(preds)}]")
-        os.makedirs(os.path.dirname(data_args.predict_file), exist_ok=True)
-        json.dump(examples, open(data_args.predict_file, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+        # if data_args.predict_file.count("/"):
+        #     os.makedirs(os.path.dirname(data_args.predict_file), exist_ok=True)
+        # json.dump(examples, open(data_args.predict_file, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+        utils_cs.save_json(examples, data_args.predict_file)
  
     kwargs = dict(
         finetuned_from=model_args.model_name_or_path,
