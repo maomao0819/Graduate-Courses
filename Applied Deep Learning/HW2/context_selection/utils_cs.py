@@ -13,7 +13,7 @@ def load_json(json_path):
 def save_json(data, json_path):
     print(f'[*] Saving to {json_path}...', end='', flush=True)
     if json_path.count("/"):
-            os.makedirs(os.path.dirname(json_path), exist_ok=True)
+        os.makedirs(os.path.dirname(json_path), exist_ok=True)
     # with open(json_path, 'w') as f:
     #     json.dump(data, f)
     json.dump(data, open(json_path, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)

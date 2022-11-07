@@ -18,6 +18,7 @@ Post-processing utilities for question answering.
 import collections
 import json
 import logging
+import pandas as pd
 import os
 from typing import Optional, Tuple
 
@@ -441,6 +442,23 @@ def postprocess_qa_predictions_with_beam_search(
 
     return all_predictions, scores_diff_json
 
+def convert_to_squad(path_in, path_out):
+    df = pd.read_json(path_in)
+    answer = pd.DataFrame(df['answer'].values.tolist())
+    answer['text'] = answer['text'].map(lambda x:[x])
+    answer['start'] = answer['start'].map(lambda x:[x])
+    answer.rename(columns = {'start':'answer_start'}, inplace = True)
+    answer = answer.to_dict('records')
+
+    for i in range(len(answer)):
+        df['answer'][i] = answer[i]
+
+    result = df.to_json(orient="records")
+    parsed = json.loads(result)
+    if path_out.count("/"):
+        os.makedirs(os.path.dirname(path_out), exist_ok=True)
+    json.dump(parsed, open(path_out, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+
 def load_json(json_path):
     if (json_path is not None) and os.path.exists(json_path):
         print(f'[*] Loading {json_path}...', end='', flush=True)
@@ -454,5 +472,7 @@ def predict_to_csv(data, path):
     print(f'[*] Saving to csv file...', end='', flush=True)
     df = pd.DataFrame.from_dict(data)
     df = df.rename({'prediction_text': 'answer'}, axis='columns')
+    if path.count("/"):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
     df.to_csv(path, index=False)
     print('done')

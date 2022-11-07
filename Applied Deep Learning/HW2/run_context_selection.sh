@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+  model_name='bert-base-chinese'
+# model_name='hfl/chinese-roberta-wwm-ext'
+
+echo $model_name
+
 python context_selection/run_cs.py \
   --do_train \
   --do_eval \
   --do_predict \
-  --model_name_or_path bert-base-chinese \
-  --output_dir model/bert-base-chinese/context-selection \
+  --model_name_or_path $model_name \
+  --output_dir model/$model_name/context-selection \
   --cache_dir cache/context-selection \
   --seed 888 \
   --data_seed 888 \
@@ -25,7 +30,7 @@ python context_selection/run_cs.py \
   --validation_file data/valid.json \
   --test_file data/test.json \
   --context_file data/context.json \
-  --predict_file predict.json \
+  --predict_file predict-$model_name.json \
   --max_seq_length 512 \
   --pad_to_max_length \
   --preprocessing_num_workers 8 \
@@ -33,4 +38,5 @@ python context_selection/run_cs.py \
   --auto_find_batch_size True \
   --num_train_epochs 3.0 \
   --gradient_accumulation_steps 2 \
-  --warmup_ratio 0.1 
+  --warmup_ratio 0.1 \
+  --evaluation_strategy steps

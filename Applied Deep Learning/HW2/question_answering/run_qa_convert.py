@@ -23,7 +23,6 @@ import os
 import sys
 from dataclasses import dataclass, field
 from typing import Optional
-import compute_score
 
 import datasets
 from datasets import load_dataset
@@ -299,15 +298,18 @@ def main():
     else:
         data_files = {}
         if data_args.test_file is not None:
-            data_files["test"] = data_args.test_file
+            utils_qa.convert_to_squad(data_args.test_file, os.path.join('convert', data_args.test_file))
+            data_files["test"] = os.path.join('convert', data_args.test_file)
             extension = data_args.test_file.split(".")[-1]
 
         if data_args.validation_file is not None:
-            data_files["validation"] = data_args.validation_file
+            utils_qa.convert_to_squad(data_args.validation_file, os.path.join('convert', data_args.validation_file))
+            data_files["validation"] = os.path.join('convert', data_args.validation_file)
             extension = data_args.validation_file.split(".")[-1]
 
         if data_args.train_file is not None:
-            data_files["train"] = data_args.train_file
+            utils_qa.convert_to_squad(data_args.train_file, os.path.join('convert', data_args.train_file))
+            data_files["train"] = os.path.join('convert', data_args.train_file)
             extension = data_args.train_file.split(".")[-1]
 
         raw_datasets = load_dataset(
@@ -317,6 +319,22 @@ def main():
             cache_dir=model_args.cache_dir,
             use_auth_token=True if model_args.use_auth_token else None,
         )
+
+        for sets in raw_datasets.keys():
+            if 'answer' in raw_datasets[sets].features:
+                raw_datasets[sets] = raw_datasets[sets].rename_column("answer", "answers")
+        #         answer_dicts = []
+        #         for answer_dict_old in raw_datasets[sets]['answers']:
+        #             answer_dict_new = {}
+        #             answer_dict_new['answer_start'] = [answer_dict_old['start']]
+        #             answer_dict_new['text'] = [answer_dict_old['text']]  
+        #             answer_dicts.append(answer_dict_new)
+        #             # print(answer_dict)
+        #         raw_datasets[sets]  = raw_datasets[sets].map(lambda example: {"answers": answer_dicts})
+        #         if sets == 'train':
+        #             print(raw_datasets[sets]['answers'])
+                             
+
     # if data_args.context_file is not None:
     #     with open(data_args.context_file, 'r') as f:
     #         context_json = json.load(f)
@@ -370,7 +388,7 @@ def main():
         column_names = raw_datasets["test"].column_names
     question_column_name = "question" if "question" in column_names else column_names[1]
     relevant_column_name = "relevant" if "relevant" in column_names else column_names[3]
-    answer_column_name = "answer" if "answer" in column_names else column_names[4]
+    answer_column_name = "answers" if "answers" in column_names else column_names[4]
 
     # Padding side determines if we do (question|context) or (context|question).
     pad_on_right = tokenizer.padding_side == "right"
@@ -426,13 +444,13 @@ def main():
             sample_index = sample_mapping[i]
             answers = examples[answer_column_name][sample_index]
             # If no answers are given, set the cls_index as answer.
-            if answers["start"]:
+            if len(answers["answer_start"]) == 0:
                 tokenized_examples["start_positions"].append(cls_index)
                 tokenized_examples["end_positions"].append(cls_index)
             else:
                 # Start/end character index of the answer in the text.
-                start_char = answers["start"]
-                end_char = start_char + len(answers["text"])
+                start_char = answers["answer_start"][0]
+                end_char = start_char + len(answers["text"][0])
 
                 # Start token index of the current span in the text.
                 token_start_index = 0
@@ -608,20 +626,13 @@ def main():
         else:
             formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
 
-        answers = {}
-        for ex in examples:
-            ans = {}
-            for k in ex[answer_column_name].keys():
-                ans[k] = [ex[answer_column_name][k]]
-            answers[ex["id"]] = ans
-
-        references = [{"id": ex["id"], "answer": answers[ex["id"]]} for ex in examples]
+        references = [{"id": ex["id"], "answers": ex[answer_column_name]} for ex in examples]
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
 
     metric = evaluate.load("squad_v2" if data_args.version_2_with_negative else "squad")
 
     def compute_metrics(p: EvalPrediction):
-        return compute_score.compute(predictions=p.predictions, references=p.label_ids)
+        return metric.compute(predictions=p.predictions, references=p.label_ids)
 
     # Initialize our Trainer
     trainer = QuestionAnsweringTrainer(
