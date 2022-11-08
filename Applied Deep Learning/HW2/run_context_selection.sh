@@ -18,8 +18,6 @@
 echo $model_name
 
 python context_selection/run_cs.py \
-  --do_train \
-  --do_eval \
   --do_predict \
   --model_name_or_path $model_name \
   --output_dir model/$model_name/context-selection \

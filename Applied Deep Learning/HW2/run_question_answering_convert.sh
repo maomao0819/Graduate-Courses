@@ -18,12 +18,10 @@ model_name='hfl/chinese-roberta-wwm-ext-large'
 echo $model_name
 
 python question_answering/run_qa_convert.py \
-  --do_train \
-  --do_eval \
   --do_predict \
   --model_name_or_path $model_name \
   --output_dir model/$model_name_convert/question-answering \
-  --cache_dir cache/question-answering-convert \
+  --cache_dir cache/ \
   --seed 888 \
   --data_seed 888 \
   --train_file data/train.json \
