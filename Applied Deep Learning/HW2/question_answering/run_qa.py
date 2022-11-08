@@ -317,6 +317,17 @@ def main():
             cache_dir=model_args.cache_dir,
             use_auth_token=True if model_args.use_auth_token else None,
         )
+
+        for sets in raw_datasets.keys():
+            if 'answer' in raw_datasets[sets].features:
+                answer_dicts = []
+                for answer_dict in raw_datasets[sets]['answer']:
+                    new_answer_dict = answer_dict
+                    new_answer_dict.update({key: [answer_dict[key]] for key in new_answer_dict.keys()})
+                    answer_dicts.append(new_answer_dict)
+                raw_datasets[sets] = raw_datasets[sets] .remove_columns(["answer"])
+                raw_datasets[sets] = raw_datasets[sets].add_column('answer', answer_dicts)
+
     # if data_args.context_file is not None:
     #     with open(data_args.context_file, 'r') as f:
     #         context_json = json.load(f)
@@ -426,13 +437,13 @@ def main():
             sample_index = sample_mapping[i]
             answers = examples[answer_column_name][sample_index]
             # If no answers are given, set the cls_index as answer.
-            if answers["start"]:
+            if len(answers["start"]) == 0:
                 tokenized_examples["start_positions"].append(cls_index)
                 tokenized_examples["end_positions"].append(cls_index)
             else:
                 # Start/end character index of the answer in the text.
-                start_char = answers["start"]
-                end_char = start_char + len(answers["text"])
+                start_char = answers["start"][0]
+                end_char = start_char + len(answers["text"][0])
 
                 # Start token index of the current span in the text.
                 token_start_index = 0
@@ -608,14 +619,7 @@ def main():
         else:
             formatted_predictions = [{"id": k, "prediction_text": v} for k, v in predictions.items()]
 
-        answers = {}
-        for ex in examples:
-            ans = {}
-            for k in ex[answer_column_name].keys():
-                ans[k] = [ex[answer_column_name][k]]
-            answers[ex["id"]] = ans
-
-        references = [{"id": ex["id"], "answer": answers[ex["id"]]} for ex in examples]
+        references = [{"id": ex["id"], "answer": ex[answer_column_name]} for ex in examples]
         return EvalPrediction(predictions=formatted_predictions, label_ids=references)
 
     metric = evaluate.load("squad_v2" if data_args.version_2_with_negative else "squad")

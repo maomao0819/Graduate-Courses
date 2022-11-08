@@ -36,7 +36,7 @@ python question_answering/run_qa.py \
   --preprocessing_num_workers 8 \
   --learning_rate 3e-5 \
   --auto_find_batch_size True \
-  --num_train_epochs 6.0 \
+  --num_train_epochs 3.0 \
   --gradient_accumulation_steps 2 \
   --warmup_ratio 0.1 \
   --evaluation_strategy steps
