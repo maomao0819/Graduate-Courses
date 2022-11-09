@@ -310,7 +310,7 @@ def main():
             cache_dir=model_args.cache_dir,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-    else:
+    elif training_args.do_train or training_args.do_eval:
         # Downloading and loading the swag dataset from the hub.
         raw_datasets = load_dataset(
             "swag",

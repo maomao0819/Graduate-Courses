@@ -10,6 +10,9 @@ if [ ! -f model/$model_name ]; then
   mkdir -p  model/$model_name
 fi
 
+gdown https://drive.google.com/uc?id=1v3urTzB4AqixIMgtjkiwGpha-qTXE5UH -O ./cache.zip
+unzip ./cache.zip
+rm ./cache.zip
 # gdown https://drive.google.com/uc?id=1BhR09bVtUkKP2YNQuusPubUKLrUNFJXm&export=download -O ./model/hfl-chinese-roberta-wwm-ext-large/context-selection/pytorch_model.bin
 gdown https://drive.google.com/uc?id=1flMtj0Ph_TkB8O1g0OwWvWJuNG9ON50i -O ./context-selection.zip
 unzip ./context-selection.zip -d ./model/$model_name

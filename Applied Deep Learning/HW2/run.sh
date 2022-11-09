@@ -53,4 +53,4 @@ python question_answering/run_qa.py \
 
 rm ./predict_cs.json
 
-bash run.sh data/context.json data/test.json  prediction.csv
+# bash run.sh data/context.json data/test.json prediction.csv

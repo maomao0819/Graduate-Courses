@@ -17,6 +17,7 @@ model_name='hfl/chinese-roberta-wwm-ext'
 
 echo $model_name
 
+# python question_answering/run_qa_convert.py \
 python question_answering/run_qa.py \
   --do_train \
   --do_eval \
