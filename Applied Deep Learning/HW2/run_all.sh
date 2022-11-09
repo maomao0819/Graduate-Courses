@@ -26,6 +26,7 @@ python context_selection/run_cs.py \
   --model_name_or_path $model_name \
   --output_dir model/$model_name/context-selection \
   --cache_dir cache/context-selection \
+  --pretrain_weight False \
   --seed 888 \
   --data_seed 888 \
   --train_file data/train.json \
@@ -50,6 +51,7 @@ python question_answering/run_qa.py \
   --model_name_or_path $model_name \
   --output_dir model/$model_name/question-answering \
   --cache_dir cache/question-answering \
+  --pretrain_weight False \
   --seed 888 \
   --data_seed 888 \
   --train_file data/train.json \
