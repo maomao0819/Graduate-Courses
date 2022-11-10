@@ -12,6 +12,8 @@ def load_json(json_path):
 
 def save_json(data, json_path):
     print(f'[*] Saving to {json_path}...', end='', flush=True)
+    if not json_path.endswith(".json"):
+        json_path = os.path.join(json_path, 'predict_cs.json')
     if json_path.count("/"):
         os.makedirs(os.path.dirname(json_path), exist_ok=True)
     # with open(json_path, 'w') as f:
