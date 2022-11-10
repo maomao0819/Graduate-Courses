@@ -12,9 +12,9 @@
         * Step 3: Build a language model based on the data generated in Step 2.
         * Step 4: Select the subword which increase the likelihood most.
         * Step 5: Repeat Step 4 until the threshold is reached
-        
+    
 2. Answer Span:
- 
+
     * a. How did you convert the answer span start/end position on characters to position on tokens after BERT tokenization?
     
         Tokenizer can choose return_offsets_mapping to return the char start and char end corresponding to each token. start position is the value when span start and char start are the same, we can find the same value by iteration. In a similar way, we can find the end position by iteratively comparing span start and char start. When the same value occurs, it's just the value at the end position.
@@ -196,7 +196,7 @@
               "vocab_size": 21128
             }
             ```
-            
+         
     * b. performance of your model.
         * Context selection accuracy: 0.9654369950294495
         * Question answering EM: 0.81916
@@ -321,7 +321,7 @@
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-
+        
         model = AutoModelForQuestionAnswering.from_pretrained(
             model_args.model_name_or_path,
             from_tf=bool(".ckpt" in model_args.model_name_or_path),
@@ -330,20 +330,20 @@
             revision=model_args.model_revision,
             use_auth_token=True if model_args.use_auth_token else None,
         )
-
+        
         # not pretrained
         model = AutoModelForMultipleChoice.from_config(
             config=config,
         )
-
+        
         model = AutoModelForQuestionAnswering.from_config(
             config=config,
         )
         ```
-            
+        
     * the performance of this model v.s. BERT
 
-        Model                                               | Context selection accuracy | Question answering EM |
+        | Model                                             | Context selection accuracy | Question answering EM |
         | ------------------------------------------------- | -------------------------- | --------------------- |
         | not pretrained roberta-wwm-ext-large (this model) | 0.24327018857002258        | 0.059155865736124955  | 
         | BERT                                              | 0.9631106853485107         | 0.77868               | 

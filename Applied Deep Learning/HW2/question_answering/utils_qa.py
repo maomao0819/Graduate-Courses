@@ -472,8 +472,8 @@ def predict_to_csv(data, path):
     print(f'[*] Saving to csv file...', end='', flush=True)
     df = pd.DataFrame.from_dict(data)
     df = df.rename({'prediction_text': 'answer'}, axis='columns')
-    if not path.endswith(".csv"):
-        path = os.path.join(path, 'prediction.csv')
+    # if not path.endswith(".csv"):
+    #     path = os.path.join(path, 'prediction.csv')
     if path.count("/"):
         os.makedirs(os.path.dirname(path), exist_ok=True)
     df.to_csv(path, index=False)
