@@ -1,8 +1,8 @@
 #!/bin/bash
 
-gdown https://drive.google.com/uc?id=1v3urTzB4AqixIMgtjkiwGpha-qTXE5UH -O ./cache.zip
-unzip ./cache.zip
-rm ./cache.zip
+# gdown https://drive.google.com/uc?id=1v3urTzB4AqixIMgtjkiwGpha-qTXE5UH -O ./cache.zip
+# unzip ./cache.zip
+# rm ./cache.zip
 
 python download_pretrain_model.py \
     --model_name_or_path hfl/chinese-roberta-wwm-ext-large \
