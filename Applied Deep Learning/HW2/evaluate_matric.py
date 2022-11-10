@@ -17,7 +17,8 @@ def plot_performance(x, y, matrix=''):
     plt.title(matrix + ' curves')
     plt.xlabel('steps') #set the label for x-axis
     plt.ylabel(matrix) #set the label for y axis
-    plt.savefig(f"{matrix}.png")
+    os.makedirs('image', exist_ok=True)
+    plt.savefig(f"image/{matrix}.png")
     plt.clf()
 
 def main():
