@@ -334,8 +334,13 @@
         ```
             
     * the performance of this model v.s. BERT
-        * Context selection accuracy: 0.24327018857002258
-        * Question answering EM: 0.059155865736124955
+        * not pretrained roberta-wwm-ext-large (this model)
+            * Context selection accuracy: 0.24327018857002258
+            * Question answering EM: 0.059155865736124955
+        
+        * BERT
+            * Context selection accuracy: 0.9631106853485107
+            * Question answering EM: 0.77868
 
     * Comparison
         * It takes longer time for training to decrease loss. In addition, since the architecture of Transformer is too huge and considers too much long-term information, it is easy to overfit when there is not enough data and requires a lot of time to train.
