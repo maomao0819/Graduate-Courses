@@ -14,7 +14,7 @@ def load_json(json_path):
 
 def plot_performance(x, y, matrix=''):
     plt.plot(x, y)
-    plt.title(matrix + ' curves')
+    plt.title(matrix + ' curves (My pretrained)')
     plt.xlabel('steps') #set the label for x-axis
     plt.ylabel(matrix) #set the label for y axis
     os.makedirs('image', exist_ok=True)

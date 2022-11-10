@@ -16,7 +16,7 @@ def plot_performance(x, y1, y2, y3, matrix=''):
     plt.plot(x, y1)
     plt.plot(x, y2)
     plt.plot(x, y3)
-    plt.title(matrix + ' curves')
+    plt.title(matrix + ' curves (All)')
     plt.xlabel('steps') #set the label for x-axis
     plt.ylabel(matrix) #set the label for y axis
     plt.legend(['roberta wwm ext large', 'bert', 'unpretrain roberta wwm ext large'])
