@@ -212,21 +212,21 @@
 1. Plot the learning curve of your QA model
     * a. Learning curve of loss 
 
-    My pretrained
+        My pretrained
 
     ![image](image/loss.png)
     
-    All
+        All
 
     ![image](image/loss_all.png)
 
     * b. Learning curve of EM 
 
-    My pretrained
+        My pretrained
 
     ![image](image/EM.png)
     
-    All
+        All
 
     ![image](image/EM_all.png)
 
@@ -342,6 +342,12 @@
         ```
             
     * the performance of this model v.s. BERT
+
+        Model                                               | Context selection accuracy | Question answering EM |
+        | ------------------------------------------------- | -------------------------- | --------------------- |
+        | not pretrained roberta-wwm-ext-large (this model) | 0.24327018857002258        | 0.059155865736124955  | 
+        | BERT                                              | 0.9631106853485107         | 0.77868               | 
+
         * not pretrained roberta-wwm-ext-large (this model)
             * Context selection accuracy: 0.24327018857002258
             * Question answering EM: 0.059155865736124955
@@ -349,11 +355,6 @@
         * BERT
             * Context selection accuracy: 0.9631106853485107
             * Question answering EM: 0.77868
-
-        Model                                               | Context selection accuracy | Question answering EM |
-        | ------------------------------------------------- | -------------------------- | --------------------- |
-        | not pretrained roberta-wwm-ext-large (this model) | 0.24327018857002258        | 0.059155865736124955  | 
-        | BERT                                              | 0.9631106853485107         | 0.77868               | 
 
     * Comparison
         * It takes longer time for training to decrease loss. In addition, since the architecture of Transformer is too huge and considers too much long-term information, it is easy to overfit when there is not enough data and requires a lot of time to train.
