@@ -212,21 +212,21 @@
 1. Plot the learning curve of your QA model
     * a. Learning curve of loss 
 
-        My pretrained
+    My pretrained
 
     ![image](image/loss.png)
     
-        All
+    All
 
     ![image](image/loss_all.png)
 
     * b. Learning curve of EM 
 
-        My pretrained
+    My pretrained
 
     ![image](image/EM.png)
     
-        All
+    All
 
     ![image](image/EM_all.png)
 
