@@ -211,7 +211,16 @@
 ## Q3: Curves
 1. Plot the learning curve of your QA model
     * a. Learning curve of loss 
+
+    ![image](image/loss.png)
+    
+    ![image](image/loss_all.png)
+
     * b. Learning curve of EM 
+
+    ![image](image/EM.png)
+    
+    ![image](image/EM_all.png)
 
 ## Q4: Pretrained vs Not Pretrained
 * Train a transformer model from scratch (without pretrained weights) on the dataset (you can choose either MC or QA)
