@@ -130,5 +130,5 @@ python question-answering/run_qa.py \
 ## Reproduce my result 
 ```bash
 bash download.sh
-bash ./run.sh /path/to/context.json /path/to/text.json /path/to/pred.csv
+bash ./run.sh /path/to/context.json /path/to/test.json /path/to/pred.csv
 ```
