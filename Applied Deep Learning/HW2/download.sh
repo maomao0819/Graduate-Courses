@@ -4,9 +4,9 @@
 # unzip ./cache.zip
 # rm ./cache.zip
 
-python download_pretrain_model.py \
-    --model_name_or_path hfl/chinese-roberta-wwm-ext-large \
-    --cache_dir ./cache \
+# python download_pretrain_model.py \
+#     --model_name_or_path hfl/chinese-roberta-wwm-ext-large \
+#     --cache_dir ./cache \
 
 model_name='hfl-chinese-roberta-wwm-ext-large'
 
