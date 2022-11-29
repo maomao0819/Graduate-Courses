@@ -1,16 +1,17 @@
 import json
 from typing import Dict
-import numpy as np
+import os
 from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, PreTrainedTokenizer
+# from rouge_score import rouge_scorer, scoring
+
 def save_jsonl(ids, predictions, json_path):
     if json_path.count("/"):
         os.makedirs(os.path.dirname(json_path), exist_ok=True)
     with open(json_path, 'w', encoding='UTF-8') as fp:
         prediction_summery = {}
-        n_records = len(ids)
         for record_id in range(len(ids)):
             prediction_summery['title'] = predictions[record_id]
             prediction_summery['id'] = ids[record_id]
@@ -34,7 +35,7 @@ def generate(
     n_batch = len(dataloader)
     tqdm_loop = tqdm((dataloader), total=n_batch)
     with torch.no_grad():
-        for batch_idx, data in enumerate(tqdm_loop, 1):
+        for data in tqdm_loop:
             generation = model.generate(
                 data["input_ids"].to(device),
                 do_sample=do_sample,
@@ -49,4 +50,40 @@ def generate(
                     generations, skip_special_tokens=True, clean_up_tokenization_spaces=True
                 )
     return generations
-        
+
+# def compute_score(predictions, references, rouge_types=None, use_aggregator=True, use_stemmer=False, tokenizer=None):
+#     if rouge_types is None:
+#         rouge_types = ["rouge1", "rouge2", "rougeL", "rougeLsum"]
+
+#     multi_ref = isinstance(references[0], list)
+
+#     if tokenizer is not None:
+#         tokenizer = Tokenizer(tokenizer)
+
+#     scorer = rouge_scorer.RougeScorer(rouge_types=rouge_types, use_stemmer=use_stemmer, tokenizer=tokenizer)
+#     if use_aggregator:
+#         aggregator = scoring.BootstrapAggregator()
+#     else:
+#         scores = []
+
+#     for ref, pred in zip(references, predictions):
+#         if multi_ref:
+#             score = scorer.score_multi(ref, pred)
+#         else:
+#             score = scorer.score(ref, pred)
+#         if use_aggregator:
+#             aggregator.add_scores(score)
+#         else:
+#             scores.append(score)
+
+#     if use_aggregator:
+#         result = aggregator.aggregate()
+#         for key in result:
+#             result[key] = result[key].mid.fmeasure
+
+#     else:
+#         result = {}
+#         for key in scores[0]:
+#             result[key] = list(score[key].fmeasure for score in scores)
+
+#     return result

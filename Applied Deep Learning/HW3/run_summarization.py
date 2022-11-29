@@ -29,6 +29,8 @@ from transformers import (
 from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, is_offline_mode, send_example_telemetry
 from transformers.utils.versions import require_version
+
+from tw_rouge import get_rouge
 import torch
 import utils
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
@@ -655,7 +657,8 @@ def main():
     )
 
     # Metric
-    metric = evaluate.load("rouge")
+    # metric = evaluate.load("rouge")
+    # metric = get_rouge
 
     def postprocess_text(preds, labels):
         preds = [pred.strip() for pred in preds]
@@ -680,8 +683,12 @@ def main():
         # Some simple post-processing
         decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
 
+        metric = evaluate.load("rouge")
         result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
+        # result = utils.compute_score(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
         result = {k: round(v * 100, 4) for k, v in result.items()}
+        # metric = get_rouge
+        # result = metric(preds=decoded_preds, refs=decoded_labels)
         prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
         result["gen_len"] = np.mean(prediction_lens)
         return result
@@ -694,6 +701,7 @@ def main():
         eval_dataset=eval_dataset if training_args.do_eval else None,
         tokenizer=tokenizer,
         data_collator=data_collator,
+        # compute_metrics=None,
         compute_metrics=compute_metrics if training_args.predict_with_generate else None,
     )
 
