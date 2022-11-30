@@ -18,6 +18,15 @@ def save_jsonl(ids, predictions, json_path):
             json.dump(prediction_summery, fp, ensure_ascii=False)
             fp.write('\n')
 
+def load_json(json_path):
+    if (json_path is not None) and os.path.exists(json_path):
+        print(f'[*] Loading {json_path}...', end='', flush=True)
+        with open(json_path, 'r') as f:
+            result = json.load(f)
+        print('done')
+
+        return result
+
 def generate(
     model: Dict[str, torch.nn.Module],
     dataloader: DataLoader,
