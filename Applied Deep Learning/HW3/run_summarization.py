@@ -141,7 +141,7 @@ class DataTrainingArguments:
         },
     )
     pred_with_label: bool = field(
-        default=False, metadata={"help": "label exists in prediction files or not"}
+        default=False, metadata={"help": "Label exists in prediction files or not."}
     )
     pred_file: Optional[str] = field(
         default='prediction.jsonl',
@@ -245,7 +245,7 @@ class DataTrainingArguments:
         default=None,
         metadata={
             "help": (
-                " The value used to module the next token probabilities."
+                "The value used to module the next token probabilities."
                 "This argument will be passed to ``model.generate``, "
                 "which is used during ``evaluate`` and ``predict``."
             )
