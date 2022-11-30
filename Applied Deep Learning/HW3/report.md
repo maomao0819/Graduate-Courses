@@ -62,7 +62,8 @@
           "unk_token": "<unk>"
         }
         ```
-        Tokenize source texts (News content) to embedding or tokens. That is, it splits the sentence into a bag of words and pads to a maximum length and truncates. Then, encode them.
+        * Tokenize source texts (News content) to embedding or tokens. That is, it splits the sentence into a bag of words and pads to a maximum length and truncates. Then, encode them.
+        * Skip special tokens and ignore padding tokens for loss
         
 ## Q2: Training
 * Hyperparameter
@@ -224,6 +225,8 @@
         | ------ | ------------------- | --------------------| ------------------- |
         | Greedy | 0.24765091796668157 | 0.09325315274046804 | 0.22163141885771145 |
         | Sample | 0.19222248815848966 | 0.06275175977187429 | 0.17017046774463196 |
+
+        Greedy search is better than random sampling since the former will chooses more accurate paths.
         
         * Beam Search
 
@@ -232,28 +235,43 @@
         | 1 (Greedy) | 0.24765091796668157 | 0.09325315274046804 | 0.22163141885771145 |
         | 5          | 0.25816324729042595 | 0.10386985944414036 | 0.2306351931010823  |
         | 10         | 0.25706684160817134 | 0.10429584872199674 | 0.22961144129951208 |
+        | 15         | 0.255776172285154   | 0.10397296851199667 | 0.2283696879903416  |
+
+        In general, the bigger the bean size is, the better the performence becomes since it takes more paths into account.But after reaching the upper limit, too large will cause a little drop due to overfitting.
         
         * Top-k Sampling
 
         | Top-k | rouge-1             | rouge-2             | rouge-L             |
         | ----- | ------------------- | --------------------| --------------------|
-        | 0     | 0.1478340727948164  | 0.04465323492673004 | 0.13237477719776036 |
         | 5     | 0.22660578311227525 | 0.10386985944414036 | 0.20075789146521852 |
         | 10    | 0.21746560833959294 | 0.07444877967890173 | 0.19295929444195561 |
+        | 15    | 0.2127884337948752  | 0.06868170102737474 | 0.1872774060390013  |
+        | 20    | 0.20662482338415544 | 0.06927505916990868 | 0.18274340871380862 |
         
+        Usually, the more options we consider, the worse the performence becomes since it considers more paths. Because it still randomly picks the paths, a larger k raises the chance to continue on or move on the wrong paths. 
+
         * Top-p Sampling
 
         | Top-p | rouge-1             | rouge-2             | rouge-L             |
         | ----- | ------------------- | --------------------| ------------------- |
         | 0.8   | 0.2169161028131528  | 0.07449239151428416 | 0.19234825346791348 |
         | 0.9   | 0.20664634851490904 | 0.06939106963720426 | 0.1840207283142242  |
+        | 1.0   | 0.19222248815848966 | 0.06275175977187429 | 0.17017046774463196 |
         
+        In common, the larger the range of probabilities we tolerate, the worse the performence becomes since it considers more paths. That is, since it still chooses the path randomly, a larger p increases the likelihood of continuing on or moving on the wrong paths.
+
         * Temperature
 
         | Temperature | rouge-1             | rouge-2             | rouge-L             |
         | ----------- | ------------------- |  -------------------| ------------------- |
         | 0.7         | 0.2223929344694026  | 0.07837742993826312 | 0.19805251961577555 |
         | 0.8         | 0.21362761333743993 | 0.07367298911661009 | 0.18947450648030603 |
+        | 0.9         | 0.20342117579892618 | 0.06824586367688147 | 0.17993184658342276 |
+        | 1.0         | 0.19222248815848966 | 0.06275175977187429 | 0.17017046774463196 |
+        | 1.1         | 0.18175961046496406 | 0.05546214858035473 | 0.16038148229530413 |
+        | 1.2         | 0.17227443766953685 | 0.05111442224562408 | 0.15164573406935802 |
+
+        Sharpen the logit softmax probability distribution will make the big one bigger and the small one smaller. Splitting them to the sides will facilitate modeling. On the other hand, smoothing the logits makes the model difficult to classify and deteriorates the model.
         
     * What is your final generation strategy? (you can combine any of them)
         * beam size = 5

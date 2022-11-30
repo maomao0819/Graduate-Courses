@@ -5,3 +5,4 @@ transformers
 accelerate
 sklearn
 gdown
+protobuf==3.20

@@ -16,29 +16,32 @@
 
 model_name='google/mt5-small'
 
-# if [ ! -f ./model/$model_name/context-selection/pytorch_model.bin ] || [ ! -f ./model/$model_name/question-answering/pytorch_model.bin ]; then
-#   bash download.sh
-# fi
+if [ ! -f summarization_weight/pytorch_model.bin ]; then
+  bash download.sh
+fi
 
 python run_summarization.py \
     --do_predict \
-    --model_name_or_path ./output/tst-summarization \
-    --output_dir ./output2/tst-summarization \
-    --cache_dir ./cache4/ \
+    --model_name_or_path ./summarization_weight \
+    --output_dir ./summarization_weight \
+    --cache_dir ./cache/ \
     --seed 888 \
     --data_seed 888 \
     --text_column maintext \
     --summary_column title \
-    --test_file ./data/sample_test.jsonl \
-    --pred_file pred.jsonl \
+    --pred_with_label False \
+    --test_file ./data/public.jsonl \
+    --pred_file ./result/pred_sample/pred_beam/beam_15.jsonl \
     --preprocessing_num_workers 8 \
     --auto_find_batch_size True \
     --predict_with_generate \
-    --generation_num_beams 5 \
-    --num_beams 5 \
-    --do_sample True \
-    # --temperature 0.8 \
-    # --top_k 0 \
-    # --top_p 0.9 \
+    --generation_num_beams 15 \
+    --num_beams 15 \
+    # --do_sample True \
+    # --top_k 20 \
+    # --temperature 1.2 \
+    # --top_p 1.2 \
+    # --top_k 5 \
+    # --temperature 0.7 \
     # --per_device_eval_batch_size 12 \
     # --per_device_train_batch_size 12 \

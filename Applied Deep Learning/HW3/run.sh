@@ -42,4 +42,4 @@ python run_summarization.py \
     # --per_device_eval_batch_size 12 \
     # --per_device_train_batch_size 12 \
 
-# bash run.sh ./data/sample_test.jsonl pred.jsonl
+# bash run.sh ./data/public.jsonl ./pred.jsonl

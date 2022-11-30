@@ -146,5 +146,5 @@ python eval.py -r public.jsonl -s submission.jsonl
 ```
 
 ## Reference
-[cccntu/tw_rouge](https://github.com/cccntu/tw_rouge)
-[text generate](https://huggingface.co/blog/how-to-generate)
+  [cccntu/tw_rouge](https://github.com/cccntu/tw_rouge)
+  [text generate](https://huggingface.co/blog/how-to-generate)

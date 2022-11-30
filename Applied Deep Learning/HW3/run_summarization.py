@@ -30,7 +30,7 @@ from transformers.trainer_utils import get_last_checkpoint
 from transformers.utils import check_min_version, is_offline_mode, send_example_telemetry
 from transformers.utils.versions import require_version
 
-from tw_rouge import get_rouge
+# from tw_rouge import get_rouge
 import torch
 import utils
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
