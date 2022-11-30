@@ -36,6 +36,7 @@ def generate(
     tqdm_loop = tqdm((dataloader), total=n_batch)
     with torch.no_grad():
         for data in tqdm_loop:
+            # ref: https://huggingface.co/blog/how-to-generate
             generation = model.generate(
                 data["input_ids"].to(device),
                 do_sample=do_sample,

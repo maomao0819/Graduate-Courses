@@ -33,7 +33,12 @@ python run_summarization.py \
     --pred_file pred.jsonl \
     --preprocessing_num_workers 8 \
     --auto_find_batch_size True \
-    --num_beams 5 \
-    --do_sample True \
     --predict_with_generate \
     --generation_num_beams 5 \
+    --num_beams 5 \
+    --do_sample True \
+    # --temperature 0.8 \
+    # --top_k 0 \
+    # --top_p 0.9 \
+    # --per_device_eval_batch_size 12 \
+    # --per_device_train_batch_size 12 \

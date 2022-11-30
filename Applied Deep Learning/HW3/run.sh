@@ -14,25 +14,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-model_name='google/mt5-small'
-
-# if [ ! -f ./model/$model_name/context-selection/pytorch_model.bin ] || [ ! -f ./model/$model_name/question-answering/pytorch_model.bin ]; then
-#   bash download.sh
-# fi
+if [ ! -f summarization_weight ]; then
+  bash download.sh
+fi
 
 python run_summarization.py \
     --do_predict \
-    --model_name_or_path ./output/tst-summarization \
-    --output_dir ./output2/tst-summarization \
+    --model_name_or_path ./summarization_weight \
+    --output_dir ./summarization_weight \
     --cache_dir ./cache/ \
     --seed 888 \
     --data_seed 888 \
     --text_column maintext \
     --summary_column title \
+    --pred_with_label False \
     --test_file $1 \
     --pred_file $2 \
     --preprocessing_num_workers 8 \
     --auto_find_batch_size True \
-    --num_beams 5 \
     --predict_with_generate \
-    --generation_num_beams 5 \
+    --do_sample True \
+    --temperature 0.8 \
+    # --top_k 0 \
+    # --top_p 0.9 \
+    # --generation_num_beams 10 \
+    # --num_beams 10 \
+    # --per_device_eval_batch_size 12 \
+    # --per_device_train_batch_size 12 \
+
+# bash run.sh ./data/sample_test.jsonl pred.jsonl

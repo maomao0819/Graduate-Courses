@@ -15,13 +15,13 @@
 # limitations under the License.
 
 model_name='google/mt5-small'
-index=1
+
 python run_summarization.py \
     --do_train \
     --do_eval \
     --do_predict \
     --model_name_or_path $model_name \
-    --output_dir ./model_output_$index/$model_name \
+    --output_dir ./model_output/$model_name \
     --cache_dir ./cache/ \
     --seed 888 \
     --data_seed 888 \
@@ -31,15 +31,17 @@ python run_summarization.py \
     --validation_file data/public.jsonl \
     --test_file data/public.jsonl \
     --preprocessing_num_workers 8 \
-    --auto_find_batch_size True \
+    --per_device_eval_batch_size 12 \
+    --per_device_train_batch_size 12 \
+    --auto_find_batch_size False \
+    --overwrite_output_dir \
     --num_beams 5 \
     --top_k 10 \
-    --num_train_epochs 10.0 \
+    --num_train_epochs 20.0 \
     --lr_scheduler_type cosine \
-    --gradient_accumulation_steps 2 \
-    --warmup_ratio 0.1 \
+    --warmup_ratio 0.2 \
     --predict_with_generate \
     --generation_num_beams 5 \
     --evaluation_strategy steps \
+    --learning_rate 3e-5 \
     # --gradient_accumulation_steps 2 \
-    # --learning_rate 3e-5 \
