@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ ! -f summarization_weight ]; then
+if [ ! -f summarization_weight/pytorch_model.bin ]; then
   bash download.sh
 fi
 
@@ -34,11 +34,11 @@ python run_summarization.py \
     --auto_find_batch_size True \
     --predict_with_generate \
     --do_sample True \
-    --temperature 0.8 \
-    # --top_k 0 \
-    # --top_p 0.9 \
-    # --generation_num_beams 10 \
-    # --num_beams 10 \
+    --temperature 0.7 \
+    --top_k 5 \
+    --top_p 0.8 \
+    --generation_num_beams 5 \
+    --num_beams 5 \
     # --per_device_eval_batch_size 12 \
     # --per_device_train_batch_size 12 \
 
