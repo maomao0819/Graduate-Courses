@@ -33,12 +33,12 @@ python run_summarization.py \
     --preprocessing_num_workers 8 \
     --auto_find_batch_size True \
     --predict_with_generate \
-    --do_sample True \
-    --temperature 0.7 \
-    --top_k 5 \
-    --top_p 0.8 \
     --generation_num_beams 5 \
     --num_beams 5 \
+    # --do_sample True \
+    # --top_k 5 \
+    # --top_p 0.8 \
+    # --temperature 0.7 \
     # --per_device_eval_batch_size 12 \
     # --per_device_train_batch_size 12 \
 

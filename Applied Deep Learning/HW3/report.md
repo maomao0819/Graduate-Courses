@@ -37,6 +37,13 @@
       "vocab_size": 250112
     }
     ```
+    We use MT5 model, which is also a variation of transformer encoder decoder architecture. In the begining, we tokenize the text sequences to tokens and feed input sequence (News content) into encoder to generate the latent vector. Then, send BOS token and and encoder's hidden state into decoder. Afterword, decorder current token and the latent feature from encoder will keep generating next word iteratively until output an EOS token, and the output sequences in this process are the inference result (News summery).
+    We use the MT5 model, which is also a variant of the Transformer encoder-decoder architecture. In the beginning, we tokenize text sequences to tokens and feed the input sequences (News content) into the encoder to generate latent vectors. Then, send the BOS token and the encoder's hidden state to the decoder. Afterword, the latent feature of encoder and decorder current token will iteratively generate the next word until an EOS token is output. The output sequence of this process is the inference result (News summery).
+
+    1. Tokenize source texts (News content) to tokens.
+    2. Feed tokens into encoder to get latent.
+    3. Keep feeding encoder output feature and current target token and seen target tokens to generate next target tokens until output an EOS token.
+    4. Convert tokens to target text sequence (News summaries).
     
 * Preprocessing
  
@@ -55,6 +62,7 @@
           "unk_token": "<unk>"
         }
         ```
+        Tokenize source texts (News content) to embedding or tokens. That is, it splits the sentence into a bag of words and pads to a maximum length and truncates. Then, encode them.
         
 ## Q2: Training
 * Hyperparameter
@@ -167,7 +175,13 @@
         xpu_backend=None,
     )
     ```
-        
+
+    * learning_rate is set to 3e-05 because there are many words. Too large will make it update too far.
+    * 20 epochs to ensure enough training steps.
+    * Cosine learning rate strategy to update weights at different scales.
+    * Warm up because it is a pretrained model
+    * Evaluated every 500 steps to monitor performance.
+    
 * Learning Curves
     * Plot the learning curves (ROUGE versus training steps)
         * loss
@@ -182,60 +196,68 @@
 * Stratgies
     * Describe the detail of the following generation strategies:
         * Greedy
-            * Greedy search simply selects the word with the highest probability as its next word: $w_t = argmax_{w}P(w | w_{1:t-1})$ at each timestep tt. The following sketch shows greedy search.
+            * Greedy search simply selects the word with the highest probability as its next word: $w_t = argmax_{w}P(w | w_{1:t-1})$ at each timestep.
             
         * Beam Search
             * Beam search reduces the risk of missing hidden high probability word sequences by keeping the most likely num_beams of hypotheses at each time step and eventually choosing the hypothesis that has the overall highest probability.
+            * Keep the top n highest probability sequences as candidates and find forward n*n paths. Prune again to the n sequences with the highest probability until the end.
             
         * Top-k Sampling
             * Randomly picking the next word $w_t$ from the K most likely next words are filtered and the probability mass is redistributed among only those K next words.
+            * Only sample on the top k highest probability sequences.
             
         * Top-p Sampling
             * Randomly choosing the next word $w_t$ from the smallest possible set of words whose cumulative probability exceeds the probability p. The probability mass is then redistributed among this set of words. This way, the size of the set of words (a.k.a the number of words in the set) can dynamically increase and decrease according to the next word's probability distribution.
+            * Only the top highest probability sequences with the fewest set of tokens are sampled which sum to at least probability p.
             
         * Temperature
             * The value used to module the next token probabilities.
             * The models often generate incoherent gibberish. A trick is to make the distribution $P(w|w_{1:t-1})$ sharper (increasing the likelihood of high probability words and decreasing the likelihood of low probability words) by lowering the so-called temperature of the softmax.
+            * Smooth the logit softmax probability distribution when temperature > 1, and sharpen it when 0 < temperature < 1.
 
 * Hyperparameters
     * Try at least 2 settings of each strategies and compare the result. 
         
         * Greedy vs Sample
         
-        | Method | rouge-1             | rouge-2             | rouge-L                         |
-        | ------ | ------------------- |  -------------------| ------------------------------ |
+        | Method | rouge-1             | rouge-2             | rouge-L             |
+        | ------ | ------------------- |  -------------------| ------------------- |
         | Greedy | 0.24765091796668157 | 0.09325315274046804 | 0.22163141885771145 |
         | Sample | 0.19222248815848966 | 0.06275175977187429 | 0.17017046774463196 |
         
         * Beam Search
 
-        | beam size  | rouge-1             | rouge-2             | rouge-L                         |
-        | ---------- | ------------------- |  -------------------| -------------------------- |
+        | beam size  | rouge-1             | rouge-2             | rouge-L             |
+        | ---------- | ------------------- |  -------------------| ------------------- |
         | 1 (Greedy) | 0.24765091796668157 | 0.09325315274046804 | 0.22163141885771145 |
         | 5          | 0.25816324729042595 | 0.10386985944414036 | 0.2306351931010823  |
         | 10         | 0.25706684160817134 | 0.10429584872199674 | 0.22961144129951208 |
         
         * Top-k Sampling
 
-        | Top-k | rouge-1             | rouge-2             | rouge-L                         |
-        | ----- | ------------------- |  -------------------| ------------------------------- |
+        | Top-k | rouge-1             | rouge-2             | rouge-L             |
+        | ----- | ------------------- |  -------------------| --------------------|
         | 0     | 0.1478340727948164  | 0.04465323492673004 | 0.13237477719776036 |
         | 5     | 0.22660578311227525 | 0.10386985944414036 | 0.20075789146521852 |
         | 10    | 0.21746560833959294 | 0.07444877967890173 | 0.19295929444195561 |
         
         * Top-p Sampling
 
-        | Top-p | rouge-1             | rouge-2             | rouge-L                         |
-        | ----- | ------------------- |  -------------------| ------------------------------- |
+        | Top-p | rouge-1             | rouge-2             | rouge-L             |
+        | ----- | ------------------- |  -------------------| ------------------- |
         | 0.8   | 0.2169161028131528  | 0.07449239151428416 | 0.19234825346791348 |
         | 0.9   | 0.20664634851490904 | 0.06939106963720426 | 0.1840207283142242  |
         
         * Temperature
 
-        | Temperature | rouge-1             | rouge-2             | rouge-L                         |
-        | ----------- | ------------------- |  -------------------| ------------------------------- |
+        | Temperature | rouge-1             | rouge-2             | rouge-L             |
+        | ----------- | ------------------- |  -------------------| ------------------- |
         | 0.7         | 0.2223929344694026  | 0.07837742993826312 | 0.19805251961577555 |
         | 0.8         | 0.21362761333743993 | 0.07367298911661009 | 0.18947450648030603 |
         
     * What is your final generation strategy? (you can combine any of them)
         * beam size = 5
+
+        | rouge-1             | rouge-2             | rouge-L             |
+        | ------------------- |  -------------------| --------------------|
+        | 0.22660578311227525 | 0.10386985944414036 | 0.20075789146521852 |
