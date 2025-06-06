@@ -1,0 +1,69 @@
+# Default .gitignore template
+__pycache__/
+
+# Compiled files
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+*.class
+*.exe
+*.obj
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor generated files
+*.suo
+*.user
+*.bak
+*.cache
+*.tmp
+*.swp
+*.swo
+*.swn
+*.idea/
+*.vscode/
+*.iml
+
+# Build and project directories
+bin/
+build/
+dist/
+target/
+*.xcodeproj/
+*.xcworkspace/
+*.xccheckout
+*.xcuserstate
+*.xcuserdata
+*.app/
+*.app.zip
+
+# Dependency folders
+node_modules/
+vendor/
+jspm_packages/
+.bower-cache/
+.bower-registry/
+.bower-tmp/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Package manager lock files
+package-lock.json
+yarn.lock

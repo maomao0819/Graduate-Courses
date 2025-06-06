@@ -1,0 +1,9 @@
+**/.ipynb_checkpoints
+**/__pycache__
+**/checkpoint*
+**/weight*
+*.npy
+*.npz
+*.dae
+data
+logs

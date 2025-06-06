@@ -1,0 +1,16 @@
+# torch
+# torchvision
+# torchaudio
+rank_bm25
+tqdm
+numpy
+scipy
+tqdm
+pandas
+gdown
+nltk
+datasets
+jieba
+stopwordsiso
+jsonlines
+sentence-transformers

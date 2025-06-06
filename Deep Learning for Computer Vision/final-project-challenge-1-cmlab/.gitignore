@@ -1,0 +1,17 @@
+# Ignore the dataset folder
+# IMPORTANT: make sure that your dataset is stored in a
+# folder with the same name as the one specified below!
+
+student_data/*
+student_data_from_ta/*
+student_data_bak/*
+final_env/
+student_data.zip
+sample_submission.csv
+get_dataset.sh
+__pycache__
+*.png
+*.jpg
+*.pt
+output.csv
+terminal_output.txt

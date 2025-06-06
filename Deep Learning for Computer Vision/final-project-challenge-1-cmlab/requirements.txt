@@ -1,0 +1,17 @@
+opencv-python
+torch
+torchvision
+torchaudio
+tqdm
+numpy
+scipy
+tqdm
+imageio
+imageio-ffmpeg
+moviepy
+matplotlib
+pandas
+autopep8
+wavencoder
+torch-audiomentations
+gdown

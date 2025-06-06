@@ -1,0 +1,1 @@
+python3 scripts/vision/main.py # | tee -a terminal_output.txt
